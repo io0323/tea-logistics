@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -244,12 +243,12 @@ func TestCreateMovement(t *testing.T) {
 		ReferenceNumber: "TRF-001",
 	}
 
-    // FromLocation の在庫取得: ロケーションで取得し、対象商品が含まれるケース
-    mockRepo.On("GetInventoryByLocation", ctx, "東京倉庫").Return([]*models.Inventory{fromInventory}, nil)
-    // 移動元在庫の数量を 100 -> 50 に更新
-    mockRepo.On("UpdateQuantity", ctx, int64(1), 50).Return(nil)
-    // ToLocation の在庫取得: ロケーションで取得し、対象商品が存在しないケース（空配列を返す）
-    mockRepo.On("GetInventoryByLocation", ctx, "大阪倉庫").Return([]*models.Inventory{}, nil)
+	// FromLocation の在庫取得: ロケーションで取得し、対象商品が含まれるケース
+	mockRepo.On("GetInventoryByLocation", ctx, "東京倉庫").Return([]*models.Inventory{fromInventory}, nil)
+	// 移動元在庫の数量を 100 -> 50 に更新
+	mockRepo.On("UpdateQuantity", ctx, int64(1), 50).Return(nil)
+	// ToLocation の在庫取得: ロケーションで取得し、対象商品が存在しないケース（空配列を返す）
+	mockRepo.On("GetInventoryByLocation", ctx, "大阪倉庫").Return([]*models.Inventory{}, nil)
 	mockRepo.On("CreateInventory", ctx, mock.AnythingOfType("*models.Inventory")).Return(nil)
 	mockRepo.On("CreateMovement", ctx, mock.AnythingOfType("*models.InventoryMovement")).Return(nil)
 
