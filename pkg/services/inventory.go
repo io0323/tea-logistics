@@ -117,58 +117,58 @@ func (s *InventoryService) GetInventoryByLocation(ctx context.Context, location 
 
 // CreateMovement 在庫移動を作成する
 func (s *InventoryService) CreateMovement(ctx context.Context, req *models.CreateMovementRequest) (*models.InventoryMovement, error) {
-	// 移動元の在庫を確認
-	fromInventory, err := s.repo.GetInventoryByProduct(ctx, req.ProductID)
-	if err != nil {
-		return nil, fmt.Errorf("移動元在庫取得エラー: %v", err)
-	}
+    // 移動元の在庫をロケーション単位で取得
+    fromInventory, err := s.GetProductInventory(ctx, req.ProductID, req.FromLocation)
+    if err != nil {
+        return nil, fmt.Errorf("移動元在庫取得エラー: %v", err)
+    }
 
-	// 在庫数のチェック
-	if fromInventory.Quantity < req.Quantity {
-		return nil, fmt.Errorf("在庫が不足しています")
-	}
+    // 在庫数のチェック
+    if fromInventory.Quantity < req.Quantity {
+        return nil, fmt.Errorf("在庫が不足しています")
+    }
 
-	// 移動元の在庫を減らす
-	if err := s.repo.UpdateQuantity(ctx, fromInventory.ID, fromInventory.Quantity-req.Quantity); err != nil {
-		return nil, fmt.Errorf("移動元在庫更新エラー: %v", err)
-	}
+    // 移動元の在庫を減らす
+    if err := s.repo.UpdateQuantity(ctx, fromInventory.ID, fromInventory.Quantity-req.Quantity); err != nil {
+        return nil, fmt.Errorf("移動元在庫更新エラー: %v", err)
+    }
 
-	// 移動先の在庫を増やす
-	toInventory, err := s.repo.GetInventoryByProduct(ctx, req.ProductID)
-	if err == nil {
-		// 既存の在庫がある場合は更新
-		if err := s.repo.UpdateQuantity(ctx, toInventory.ID, toInventory.Quantity+req.Quantity); err != nil {
-			return nil, fmt.Errorf("移動先在庫更新エラー: %v", err)
-		}
-	} else {
-		// 新規在庫を作成
-		newInventory := &models.Inventory{
-			ProductID: req.ProductID,
-			Quantity:  req.Quantity,
-			Location:  req.ToLocation,
-			Status:    "available",
-		}
-		if err := s.repo.CreateInventory(ctx, newInventory); err != nil {
-			return nil, fmt.Errorf("移動先在庫作成エラー: %v", err)
-		}
-	}
+    // 移動先の在庫をロケーション単位で取得
+    toInventory, err := s.GetProductInventory(ctx, req.ProductID, req.ToLocation)
+    if err == nil {
+        // 既存の移動先在庫がある場合は加算
+        if err := s.repo.UpdateQuantity(ctx, toInventory.ID, toInventory.Quantity+req.Quantity); err != nil {
+            return nil, fmt.Errorf("移動先在庫更新エラー: %v", err)
+        }
+    } else {
+        // 移動先に在庫がない場合は新規作成
+        newInventory := &models.Inventory{
+            ProductID: req.ProductID,
+            Quantity:  req.Quantity,
+            Location:  req.ToLocation,
+            Status:    models.InventoryStatusAvailable,
+        }
+        if err := s.repo.CreateInventory(ctx, newInventory); err != nil {
+            return nil, fmt.Errorf("移動先在庫作成エラー: %v", err)
+        }
+    }
 
-	// 在庫移動を記録
-	movement := &models.InventoryMovement{
-		ProductID:       req.ProductID,
-		FromLocation:    req.FromLocation,
-		ToLocation:      req.ToLocation,
-		Quantity:        req.Quantity,
-		MovementType:    req.MovementType,
-		MovementDate:    req.MovementDate,
-		ReferenceNumber: req.ReferenceNumber,
-	}
+    // 在庫移動を記録
+    movement := &models.InventoryMovement{
+        ProductID:       req.ProductID,
+        FromLocation:    req.FromLocation,
+        ToLocation:      req.ToLocation,
+        Quantity:        req.Quantity,
+        MovementType:    req.MovementType,
+        MovementDate:    req.MovementDate,
+        ReferenceNumber: req.ReferenceNumber,
+    }
 
-	if err := s.repo.CreateMovement(ctx, movement); err != nil {
-		return nil, fmt.Errorf("在庫移動作成エラー: %v", err)
-	}
+    if err := s.repo.CreateMovement(ctx, movement); err != nil {
+        return nil, fmt.Errorf("在庫移動作成エラー: %v", err)
+    }
 
-	return movement, nil
+    return movement, nil
 }
 
 // ListMovements 在庫移動履歴を取得する
