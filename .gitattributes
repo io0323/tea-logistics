@@ -1,0 +1,10 @@
+# Increase Go language percentage by excluding non-Go code from Linguist stats
+# Frontend (Next.js/TypeScript) is not counted towards language stats
+frontend/** linguist-detectable=false
+
+# Backend (NestJS/TypeScript) is not counted towards language stats
+backend/** linguist-detectable=false
+
+# Ignore common build artifacts from stats
+**/dist/** linguist-generated=true
+**/node_modules/** linguist-vendored
