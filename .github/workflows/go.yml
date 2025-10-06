@@ -47,5 +47,30 @@ jobs:
     - name: Build
       run: go build -v ./...
 
-    - name: Test
-      run: go test -v ./...
+    - name: Test with Coverage
+      run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
+
+    - name: Generate Coverage Report
+      run: go tool cover -html=coverage.out -o coverage.html
+
+    - name: Upload Coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+    - name: Check Coverage Threshold
+      run: |
+        COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "Current coverage: ${COVERAGE}%"
+        THRESHOLD=15
+        # Convert to integer for comparison
+        COVERAGE_INT=$(echo $COVERAGE | cut -d. -f1)
+        if [ "$COVERAGE_INT" -lt "$THRESHOLD" ]; then
+          echo "Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"
+          exit 1
+        else
+          echo "Coverage ${COVERAGE}% meets threshold ${THRESHOLD}%"
+        fi
