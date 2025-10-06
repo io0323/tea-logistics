@@ -3,7 +3,9 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
+	"tea-logistics/pkg/models"
 	"tea-logistics/pkg/services"
 
 	"github.com/gin-gonic/gin"
@@ -145,4 +147,64 @@ func (h *InventoryHandler) CheckAvailability(c *gin.Context) {
 		"available": available,
 		"message":   message,
 	})
+}
+
+// CreateMovement 在庫移動を作成する
+func (h *InventoryHandler) CreateMovement(c *gin.Context) {
+	type MovementRequest struct {
+		ProductID       int64  `json:"product_id" binding:"required"`
+		FromLocation    string `json:"from_location" binding:"required"`
+		ToLocation      string `json:"to_location" binding:"required"`
+		Quantity        int    `json:"quantity" binding:"required"`
+		MovementType    string `json:"movement_type" binding:"required"`
+		MovementDate    string `json:"movement_date"`
+		ReferenceNumber string `json:"reference_number"`
+	}
+
+  var req MovementRequest
+  if err := c.ShouldBindJSON(&req); err != nil {
+    c.JSON(http.StatusBadRequest, gin.H{"error": "無効なリクエスト形式です"})
+    return
+  }
+
+  // MovementTypeのバリデーション
+  validMovementTypes := map[string]bool{
+    string(models.MovementTypeInbound):     true,
+    string(models.MovementTypeOutbound):    true,
+    string(models.MovementTypeTransfer):    true,
+    string(models.MovementTypeAdjustment):  true,
+  }
+  if !validMovementTypes[req.MovementType] {
+    c.JSON(http.StatusBadRequest, gin.H{"error": "無効な移動タイプです。有効な値: inbound, outbound, transfer, adjustment"})
+    return
+  }
+
+  var movementTime time.Time
+  if req.MovementDate != "" {
+    // RFC3339想定。異なる形式が必要ならばここで調整
+    if t, err := time.Parse(time.RFC3339, req.MovementDate); err == nil {
+      movementTime = t
+    } else {
+      c.JSON(http.StatusBadRequest, gin.H{"error": "movement_dateはRFC3339形式で指定してください"})
+      return
+    }
+  } else {
+    movementTime = time.Now()
+  }
+
+  movement, err := h.service.CreateMovement(c.Request.Context(), &models.CreateMovementRequest{
+    ProductID:       req.ProductID,
+    FromLocation:    req.FromLocation,
+    ToLocation:      req.ToLocation,
+    Quantity:        req.Quantity,
+    MovementType:    models.MovementType(req.MovementType),
+    MovementDate:    movementTime,
+    ReferenceNumber: req.ReferenceNumber,
+  })
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, movement)
 }

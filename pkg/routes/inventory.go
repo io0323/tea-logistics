@@ -41,6 +41,13 @@ func SetupInventoryRoutes(router *gin.Engine, handler *handlers.InventoryHandler
 			models.RoleAdmin,
 		), handler.TransferInventory)
 
+		// 在庫移動の作成（明示API）
+		inventory.POST("/movements", middleware.RoleAuth(
+			models.RoleOperator,
+			models.RoleManager,
+			models.RoleAdmin,
+		), handler.CreateMovement)
+
 		// 在庫の可用性チェック（閲覧者以上）
 		inventory.GET("/check", middleware.RoleAuth(
 			models.RoleViewer,
