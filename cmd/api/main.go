@@ -14,6 +14,7 @@ import (
 	"tea-logistics/pkg/config"
 	"tea-logistics/pkg/database"
 	"tea-logistics/pkg/handlers"
+	"tea-logistics/pkg/health"
 	"tea-logistics/pkg/logger"
 	"tea-logistics/pkg/middleware"
 	"tea-logistics/pkg/repository"
@@ -38,7 +39,7 @@ func main() {
 	if err := logger.InitFromEnv(); err != nil {
 		log.Fatalf("ログ機能の初期化に失敗しました: %v", err)
 	}
-	
+
 	logger.Info("アプリケーションを起動しています", map[string]interface{}{
 		"version": "1.0.0",
 		"env":     os.Getenv("GIN_MODE"),
@@ -97,6 +98,20 @@ func main() {
 
 	logger.Info("データベース接続が確立されました")
 
+	// ヘルスチェック機能の初期化
+	health.InitGlobalHealthChecker()
+	health.InitGlobalMetricsManager()
+
+	// データベースヘルスチェックを登録
+	dbHealthCheck := health.NewDatabaseHealthCheck("main_database", db)
+	health.RegisterGlobalCheck(dbHealthCheck)
+
+	// メトリクス収集を開始
+	ctx := context.Background()
+	go health.GetGlobalMetricsManager().StartMetricsCollection(ctx, 30*time.Second)
+
+	logger.Info("ヘルスチェック機能を初期化しました")
+
 	// データベースをラップ
 	dbWrapper := repository.NewSQLDatabase(db)
 
@@ -146,6 +161,9 @@ func main() {
 	routes.SetupTrackingRoutes(router, trackingHandler)
 	routes.SetupNotificationRoutes(router, notifyHandler)
 	routes.SetupDeliveryRoutes(router, deliveryHandler)
+	
+	// ヘルスチェックルートの設定
+	health.SetupGlobalHealthRoutes(router)
 
 	// サーバーの設定
 	srv := &http.Server{
@@ -180,6 +198,6 @@ func main() {
 			"error": err.Error(),
 		})
 	}
-	
+
 	logger.Info("サーバーが正常にシャットダウンされました")
 }
