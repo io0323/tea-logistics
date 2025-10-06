@@ -53,7 +53,7 @@ func TestLogConfigManager(t *testing.T) {
 
 	t.Run("設定の部分更新", func(t *testing.T) {
 		updates := map[string]interface{}{
-			"level": "ERROR",
+			"level":  "ERROR",
 			"caller": false,
 		}
 
@@ -329,7 +329,7 @@ func TestDynamicConfigManager(t *testing.T) {
 
 	t.Run("設定の部分更新", func(t *testing.T) {
 		updates := map[string]interface{}{
-			"level": "WARN",
+			"level":  "WARN",
 			"caller": true,
 		}
 

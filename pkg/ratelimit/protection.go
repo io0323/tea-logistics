@@ -14,38 +14,38 @@ import (
 
 // APIProtectionConfig API保護設定
 type APIProtectionConfig struct {
-	Enabled           bool              `json:"enabled"`
-	DefaultStrategy   RateLimitStrategy `json:"default_strategy"`
-	DefaultLimit      int               `json:"default_limit"`
-	DefaultWindow     time.Duration     `json:"default_window"`
-	IPWhitelist       []string          `json:"ip_whitelist"`
-	IPBlacklist       []string          `json:"ip_blacklist"`
-	UserWhitelist     []string          `json:"user_whitelist"`
-	UserBlacklist     []string          `json:"user_blacklist"`
-	SkipPaths         []string          `json:"skip_paths"`
-	CustomLimits      map[string]int    `json:"custom_limits"`
-	CustomStrategies  map[string]string `json:"custom_strategies"`
-	CustomWindows     map[string]string `json:"custom_windows"`
-	ErrorResponse     string            `json:"error_response"`
-	Headers           map[string]string `json:"headers"`
+	Enabled          bool              `json:"enabled"`
+	DefaultStrategy  RateLimitStrategy `json:"default_strategy"`
+	DefaultLimit     int               `json:"default_limit"`
+	DefaultWindow    time.Duration     `json:"default_window"`
+	IPWhitelist      []string          `json:"ip_whitelist"`
+	IPBlacklist      []string          `json:"ip_blacklist"`
+	UserWhitelist    []string          `json:"user_whitelist"`
+	UserBlacklist    []string          `json:"user_blacklist"`
+	SkipPaths        []string          `json:"skip_paths"`
+	CustomLimits     map[string]int    `json:"custom_limits"`
+	CustomStrategies map[string]string `json:"custom_strategies"`
+	CustomWindows    map[string]string `json:"custom_windows"`
+	ErrorResponse    string            `json:"error_response"`
+	Headers          map[string]string `json:"headers"`
 }
 
 // DefaultAPIProtectionConfig デフォルトAPI保護設定
 func DefaultAPIProtectionConfig() *APIProtectionConfig {
 	return &APIProtectionConfig{
-		Enabled:         true,
-		DefaultStrategy: StrategyFixedWindow,
-		DefaultLimit:    100,
-		DefaultWindow:   1 * time.Minute,
-		IPWhitelist:     []string{},
-		IPBlacklist:     []string{},
-		UserWhitelist:   []string{},
-		UserBlacklist:   []string{},
-		SkipPaths:       []string{"/health", "/metrics"},
-		CustomLimits:    make(map[string]int),
+		Enabled:          true,
+		DefaultStrategy:  StrategyFixedWindow,
+		DefaultLimit:     100,
+		DefaultWindow:    1 * time.Minute,
+		IPWhitelist:      []string{},
+		IPBlacklist:      []string{},
+		UserWhitelist:    []string{},
+		UserBlacklist:    []string{},
+		SkipPaths:        []string{"/health", "/metrics"},
+		CustomLimits:     make(map[string]int),
 		CustomStrategies: make(map[string]string),
 		CustomWindows:    make(map[string]string),
-		ErrorResponse:   "レート制限に達しました。しばらくしてから再試行してください。",
+		ErrorResponse:    "レート制限に達しました。しばらくしてから再試行してください。",
 		Headers: map[string]string{
 			"X-RateLimit-Limit":     "X-RateLimit-Limit",
 			"X-RateLimit-Remaining": "X-RateLimit-Remaining",
@@ -85,7 +85,7 @@ func (p *APIProtector) Middleware() gin.HandlerFunc {
 
 		// クライアント情報を取得
 		clientInfo := p.getClientInfo(c)
-		
+
 		// ブラックリストのチェック
 		if p.isBlacklisted(clientInfo) {
 			logger.Warn("ブラックリストからのアクセス", map[string]interface{}{
@@ -125,7 +125,7 @@ func (p *APIProtector) Middleware() gin.HandlerFunc {
 				"strategy": strategy,
 				"error":    err.Error(),
 			})
-			
+
 			// エラー時は許可する（設定による）
 			c.Next()
 			return
@@ -166,10 +166,10 @@ func (p *APIProtector) Middleware() gin.HandlerFunc {
 
 // ClientInfo クライアント情報
 type ClientInfo struct {
-	IP      string
-	UserID  string
+	IP        string
+	UserID    string
 	UserAgent string
-	Path    string
+	Path      string
 }
 
 // shouldSkipPath パスをスキップするかチェック
@@ -186,16 +186,16 @@ func (p *APIProtector) shouldSkipPath(path string) bool {
 func (p *APIProtector) getClientInfo(c *gin.Context) *ClientInfo {
 	// IPアドレスを取得
 	ip := c.ClientIP()
-	
+
 	// ユーザーIDを取得（認証済みの場合）
 	userID := c.GetString("user_id")
 	if userID == "" {
 		userID = "anonymous"
 	}
-	
+
 	// User-Agentを取得
 	userAgent := c.GetHeader("User-Agent")
-	
+
 	return &ClientInfo{
 		IP:        ip,
 		UserID:    userID,
@@ -212,14 +212,14 @@ func (p *APIProtector) isBlacklisted(clientInfo *ClientInfo) bool {
 			return true
 		}
 	}
-	
+
 	// ユーザーブラックリストのチェック
 	for _, blacklistedUser := range p.config.UserBlacklist {
 		if clientInfo.UserID == blacklistedUser {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -231,14 +231,14 @@ func (p *APIProtector) isWhitelisted(clientInfo *ClientInfo) bool {
 			return true
 		}
 	}
-	
+
 	// ユーザーホワイトリストのチェック
 	for _, whitelistedUser := range p.config.UserWhitelist {
 		if clientInfo.UserID == whitelistedUser {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -247,38 +247,38 @@ func (p *APIProtector) getRateLimitConfig(path string, clientInfo *ClientInfo) (
 	strategy := p.config.DefaultStrategy
 	limit := p.config.DefaultLimit
 	window := p.config.DefaultWindow
-	
+
 	// パス固有の設定をチェック
 	if customLimit, exists := p.config.CustomLimits[path]; exists {
 		limit = customLimit
 	}
-	
+
 	if customStrategy, exists := p.config.CustomStrategies[path]; exists {
 		strategy = RateLimitStrategy(customStrategy)
 	}
-	
+
 	if customWindow, exists := p.config.CustomWindows[path]; exists {
 		if parsedWindow, err := time.ParseDuration(customWindow); err == nil {
 			window = parsedWindow
 		}
 	}
-	
+
 	// ユーザー固有の設定をチェック
 	userKey := fmt.Sprintf("user:%s", clientInfo.UserID)
 	if customLimit, exists := p.config.CustomLimits[userKey]; exists {
 		limit = customLimit
 	}
-	
+
 	if customStrategy, exists := p.config.CustomStrategies[userKey]; exists {
 		strategy = RateLimitStrategy(customStrategy)
 	}
-	
+
 	if customWindow, exists := p.config.CustomWindows[userKey]; exists {
 		if parsedWindow, err := time.ParseDuration(customWindow); err == nil {
 			window = parsedWindow
 		}
 	}
-	
+
 	return strategy, limit, window
 }
 
@@ -288,7 +288,7 @@ func (p *APIProtector) generateRateLimitKey(clientInfo *ClientInfo, path string)
 	if clientInfo.UserID != "anonymous" {
 		return fmt.Sprintf("user:%s:%s", clientInfo.UserID, path)
 	}
-	
+
 	// 匿名ユーザーの場合はIPアドレスを使用
 	return fmt.Sprintf("ip:%s:%s", clientInfo.IP, path)
 }
@@ -300,11 +300,11 @@ func (p *APIProtector) setRateLimitHeaders(c *gin.Context, result *RateLimitResu
 	remainingHeader := p.config.Headers["X-RateLimit-Remaining"]
 	resetHeader := p.config.Headers["X-RateLimit-Reset"]
 	retryHeader := p.config.Headers["X-RateLimit-Retry"]
-	
+
 	c.Header(limitHeader, strconv.Itoa(result.Limit))
 	c.Header(remainingHeader, strconv.Itoa(result.Remaining))
 	c.Header(resetHeader, strconv.FormatInt(result.ResetTime.Unix(), 10))
-	
+
 	if result.RetryAfter > 0 {
 		c.Header(retryHeader, strconv.Itoa(int(result.RetryAfter.Seconds())))
 	}
@@ -359,13 +359,13 @@ func (p *DDoSProtector) Middleware() gin.HandlerFunc {
 		}
 
 		clientIP := c.ClientIP()
-		
+
 		// ホワイトリストのチェック
 		if p.isWhitelisted(clientIP) {
 			c.Next()
 			return
 		}
-		
+
 		// ブラックリストのチェック
 		if p.isBlacklisted(clientIP) {
 			logger.Warn("DDoSブラックリストからのアクセス", map[string]interface{}{
@@ -407,11 +407,11 @@ func (p *DDoSProtector) Middleware() gin.HandlerFunc {
 		// DDoS攻撃の検出
 		if !minResult.Allowed || !secResult.Allowed {
 			logger.Error("DDoS攻撃を検出しました", map[string]interface{}{
-				"ip":              clientIP,
-				"min_requests":    minResult.Limit - minResult.Remaining,
-				"sec_requests":    secResult.Limit - secResult.Remaining,
-				"max_per_min":     p.config.MaxRequestsPerMin,
-				"max_per_sec":     p.config.MaxRequestsPerSec,
+				"ip":           clientIP,
+				"min_requests": minResult.Limit - minResult.Remaining,
+				"sec_requests": secResult.Limit - secResult.Remaining,
+				"max_per_min":  p.config.MaxRequestsPerMin,
+				"max_per_sec":  p.config.MaxRequestsPerSec,
 			})
 
 			// 自動ブロック
@@ -460,27 +460,27 @@ func (p *DDoSProtector) addToBlacklist(ip string) {
 
 // SecurityHeadersConfig セキュリティヘッダー設定
 type SecurityHeadersConfig struct {
-	Enabled                bool   `json:"enabled"`
-	XFrameOptions          string `json:"x_frame_options"`
-	XContentTypeOptions    string `json:"x_content_type_options"`
-	XSSProtection          string `json:"xss_protection"`
+	Enabled                 bool   `json:"enabled"`
+	XFrameOptions           string `json:"x_frame_options"`
+	XContentTypeOptions     string `json:"x_content_type_options"`
+	XSSProtection           string `json:"xss_protection"`
 	StrictTransportSecurity string `json:"strict_transport_security"`
-	ContentSecurityPolicy  string `json:"content_security_policy"`
-	ReferrerPolicy         string `json:"referrer_policy"`
-	PermissionsPolicy      string `json:"permissions_policy"`
+	ContentSecurityPolicy   string `json:"content_security_policy"`
+	ReferrerPolicy          string `json:"referrer_policy"`
+	PermissionsPolicy       string `json:"permissions_policy"`
 }
 
 // DefaultSecurityHeadersConfig デフォルトセキュリティヘッダー設定
 func DefaultSecurityHeadersConfig() *SecurityHeadersConfig {
 	return &SecurityHeadersConfig{
-		Enabled:                true,
-		XFrameOptions:          "DENY",
-		XContentTypeOptions:    "nosniff",
-		XSSProtection:          "1; mode=block",
+		Enabled:                 true,
+		XFrameOptions:           "DENY",
+		XContentTypeOptions:     "nosniff",
+		XSSProtection:           "1; mode=block",
 		StrictTransportSecurity: "max-age=31536000; includeSubDomains",
-		ContentSecurityPolicy:  "default-src 'self'",
-		ReferrerPolicy:         "strict-origin-when-cross-origin",
-		PermissionsPolicy:      "geolocation=(), microphone=(), camera=()",
+		ContentSecurityPolicy:   "default-src 'self'",
+		ReferrerPolicy:          "strict-origin-when-cross-origin",
+		PermissionsPolicy:       "geolocation=(), microphone=(), camera=()",
 	}
 }
 

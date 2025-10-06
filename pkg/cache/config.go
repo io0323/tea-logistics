@@ -176,7 +176,7 @@ type CacheStrategy struct {
 func DefaultCacheStrategy() *CacheStrategy {
 	return &CacheStrategy{
 		TTL:           1 * time.Hour,
-		RefreshTTL:   30 * time.Minute,
+		RefreshTTL:    30 * time.Minute,
 		MaxRetries:    3,
 		RetryInterval: 100 * time.Millisecond,
 	}
@@ -342,13 +342,13 @@ func (m *CachePatternManager) InvalidatePattern(ctx context.Context, patternName
 
 // CacheMetrics キャッシュメトリクス
 type CacheMetrics struct {
-	Hits       int64
-	Misses     int64
-	Sets       int64
-	Deletes    int64
-	Errors     int64
-	TotalSize  int64
-	KeyCount   int64
+	Hits      int64
+	Misses    int64
+	Sets      int64
+	Deletes   int64
+	Errors    int64
+	TotalSize int64
+	KeyCount  int64
 }
 
 // CacheMetricsCollector キャッシュメトリクスコレクター

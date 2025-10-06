@@ -30,7 +30,7 @@ type ConfigChangeCallback func(config *Config) error
 // NewDynamicConfigManager 新しい動的設定管理を作成
 func NewDynamicConfigManager(initialConfig *Config) *DynamicConfigManager {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	manager := &DynamicConfigManager{
 		config:     initialConfig,
 		watchers:   make([]ConfigWatcher, 0),
@@ -38,10 +38,10 @@ func NewDynamicConfigManager(initialConfig *Config) *DynamicConfigManager {
 		ctx:        ctx,
 		cancel:     cancel,
 	}
-	
+
 	// 設定更新処理を開始
 	go manager.processUpdates()
-	
+
 	return manager
 }
 
@@ -49,7 +49,7 @@ func NewDynamicConfigManager(initialConfig *Config) *DynamicConfigManager {
 func (d *DynamicConfigManager) GetConfig() *Config {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	
+
 	// 設定のコピーを返す
 	configCopy := *d.config
 	return &configCopy
@@ -59,15 +59,15 @@ func (d *DynamicConfigManager) GetConfig() *Config {
 func (d *DynamicConfigManager) UpdateConfig(newConfig *Config) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	
+
 	// 設定の妥当性を検証
 	if _, err := newConfig.GetOutput(); err != nil {
 		return fmt.Errorf("設定の妥当性検証に失敗: %v", err)
 	}
-	
+
 	// 設定を更新
 	d.config = newConfig
-	
+
 	// 非同期で更新を通知
 	select {
 	case d.updateChan <- newConfig:
@@ -77,7 +77,7 @@ func (d *DynamicConfigManager) UpdateConfig(newConfig *Config) error {
 			"config": newConfig,
 		})
 	}
-	
+
 	return nil
 }
 
@@ -85,10 +85,10 @@ func (d *DynamicConfigManager) UpdateConfig(newConfig *Config) error {
 func (d *DynamicConfigManager) UpdateConfigFields(updates map[string]interface{}) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	
+
 	// 現在の設定のコピーを作成
 	newConfig := *d.config
-	
+
 	// フィールドを更新
 	for key, value := range updates {
 		switch key {
@@ -116,15 +116,15 @@ func (d *DynamicConfigManager) UpdateConfigFields(updates map[string]interface{}
 			return fmt.Errorf("不明な設定キー: %s", key)
 		}
 	}
-	
+
 	// 設定の妥当性を検証
 	if _, err := newConfig.GetOutput(); err != nil {
 		return fmt.Errorf("設定の妥当性検証に失敗: %v", err)
 	}
-	
+
 	// 設定を更新
 	d.config = &newConfig
-	
+
 	// 非同期で更新を通知
 	select {
 	case d.updateChan <- &newConfig:
@@ -133,7 +133,7 @@ func (d *DynamicConfigManager) UpdateConfigFields(updates map[string]interface{}
 			"updates": updates,
 		})
 	}
-	
+
 	return nil
 }
 
@@ -141,7 +141,7 @@ func (d *DynamicConfigManager) UpdateConfigFields(updates map[string]interface{}
 func (d *DynamicConfigManager) AddWatcher(watcher ConfigWatcher) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	
+
 	d.watchers = append(d.watchers, watcher)
 }
 
@@ -149,7 +149,7 @@ func (d *DynamicConfigManager) AddWatcher(watcher ConfigWatcher) {
 func (d *DynamicConfigManager) RemoveWatcher(watcher ConfigWatcher) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	
+
 	for i, w := range d.watchers {
 		if w == watcher {
 			d.watchers = append(d.watchers[:i], d.watchers[i+1:]...)
@@ -182,7 +182,7 @@ func (d *DynamicConfigManager) notifyWatchers(config *Config) {
 	watchers := make([]ConfigWatcher, len(d.watchers))
 	copy(watchers, d.watchers)
 	d.mu.RUnlock()
-	
+
 	for _, watcher := range watchers {
 		if err := watcher.OnConfigChange(config); err != nil {
 			Error("設定変更通知エラー", map[string]interface{}{
@@ -228,7 +228,7 @@ func (r *ConfigReloader) StartWatching(interval time.Duration) {
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ticker.C:
@@ -247,7 +247,7 @@ func (r *ConfigReloader) checkAndReload() error {
 	if r.configPath == "" {
 		return nil
 	}
-	
+
 	// ファイルの更新時刻をチェック
 	info, err := os.Stat(r.configPath)
 	if err != nil {
@@ -256,21 +256,21 @@ func (r *ConfigReloader) checkAndReload() error {
 		}
 		return err
 	}
-	
+
 	modTime := info.ModTime()
 	if modTime.After(r.lastMod) {
 		r.lastMod = modTime
-		
+
 		// 設定ファイルを読み込み
 		config, err := LoadConfigFromFile(r.configPath)
 		if err != nil {
 			return err
 		}
-		
+
 		// 動的設定管理に適用
 		return r.manager.UpdateConfig(config)
 	}
-	
+
 	return nil
 }
 
@@ -280,12 +280,12 @@ func LoadConfigFromFile(configPath string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var config Config
 	if err := json.Unmarshal(data, &config); err != nil {
 		return nil, err
 	}
-	
+
 	return &config, nil
 }
 
@@ -295,7 +295,7 @@ var globalDynamicManager *DynamicConfigManager
 // InitGlobalDynamicConfig グローバル動的設定管理を初期化
 func InitGlobalDynamicConfig(initialConfig *Config) {
 	globalDynamicManager = NewDynamicConfigManager(initialConfig)
-	
+
 	// グローバルロガーを監視者として追加
 	globalDynamicManager.AddCallback(func(config *Config) error {
 		return config.Apply(GetGlobalLogger())

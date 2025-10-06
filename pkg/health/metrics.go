@@ -15,8 +15,8 @@ import (
 type MetricType string
 
 const (
-	MetricTypeCounter MetricType = "counter"
-	MetricTypeGauge   MetricType = "gauge"
+	MetricTypeCounter   MetricType = "counter"
+	MetricTypeGauge     MetricType = "gauge"
 	MetricTypeHistogram MetricType = "histogram"
 )
 
@@ -47,7 +47,7 @@ func NewMetricCollector() *MetricCollector {
 func (m *MetricCollector) SetCounter(name string, value float64, labels map[string]string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	m.metrics[name] = &Metric{
 		Name:      name,
 		Type:      MetricTypeCounter,
@@ -61,7 +61,7 @@ func (m *MetricCollector) SetCounter(name string, value float64, labels map[stri
 func (m *MetricCollector) SetGauge(name string, value float64, labels map[string]string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	m.metrics[name] = &Metric{
 		Name:      name,
 		Type:      MetricTypeGauge,
@@ -75,7 +75,7 @@ func (m *MetricCollector) SetGauge(name string, value float64, labels map[string
 func (m *MetricCollector) IncrementCounter(name string, labels map[string]string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if metric, exists := m.metrics[name]; exists {
 		metric.Value++
 		metric.Timestamp = time.Now()
@@ -94,7 +94,7 @@ func (m *MetricCollector) IncrementCounter(name string, labels map[string]string
 func (m *MetricCollector) GetMetric(name string) (*Metric, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	metric, exists := m.metrics[name]
 	if exists {
 		// コピーを返す
@@ -108,7 +108,7 @@ func (m *MetricCollector) GetMetric(name string) (*Metric, bool) {
 func (m *MetricCollector) GetAllMetrics() map[string]*Metric {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	metrics := make(map[string]*Metric)
 	for name, metric := range m.metrics {
 		// コピーを作成
@@ -183,11 +183,11 @@ func (s *SystemMetricsCollector) GetMetrics() map[string]*Metric {
 
 // ApplicationMetricsCollector アプリケーションメトリクスコレクター
 type ApplicationMetricsCollector struct {
-	collector     *MetricCollector
-	requestCount  int64
-	errorCount    int64
-	responseTime  int64 // ミリ秒
-	activeUsers   int64
+	collector    *MetricCollector
+	requestCount int64
+	errorCount   int64
+	responseTime int64 // ミリ秒
+	activeUsers  int64
 }
 
 // NewApplicationMetricsCollector 新しいアプリケーションメトリクスコレクターを作成
@@ -240,11 +240,11 @@ func (a *ApplicationMetricsCollector) GetMetrics() map[string]*Metric {
 
 // DatabaseMetricsCollector データベースメトリクスコレクター
 type DatabaseMetricsCollector struct {
-	collector      *MetricCollector
-	queryCount     int64
-	queryTime      int64 // ミリ秒
+	collector       *MetricCollector
+	queryCount      int64
+	queryTime       int64 // ミリ秒
 	connectionCount int64
-	errorCount     int64
+	errorCount      int64
 }
 
 // NewDatabaseMetricsCollector 新しいデータベースメトリクスコレクターを作成

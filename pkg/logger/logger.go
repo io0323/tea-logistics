@@ -149,18 +149,18 @@ func (l *Logger) getCaller() string {
 	if !l.caller {
 		return ""
 	}
-	
+
 	_, file, line, ok := runtime.Caller(3)
 	if !ok {
 		return ""
 	}
-	
+
 	// ファイルパスを短縮
 	parts := strings.Split(file, "/")
 	if len(parts) > 2 {
 		file = strings.Join(parts[len(parts)-2:], "/")
 	}
-	
+
 	return fmt.Sprintf("%s:%d", file, line)
 }
 
@@ -169,7 +169,7 @@ func (l *Logger) log(level LogLevel, message string, fields ...map[string]interf
 	if level < l.level {
 		return
 	}
-	
+
 	entry := LogEntry{
 		Timestamp: time.Now(),
 		Level:     level,
@@ -180,31 +180,31 @@ func (l *Logger) log(level LogLevel, message string, fields ...map[string]interf
 		UserID:    l.userID,
 		RequestID: l.requestID,
 	}
-	
+
 	// 基本フィールドをコピー
 	for k, v := range l.fields {
 		entry.Fields[k] = v
 	}
-	
+
 	// 追加フィールドをマージ
 	for _, fieldMap := range fields {
 		for k, v := range fieldMap {
 			entry.Fields[k] = v
 		}
 	}
-	
+
 	// JSON形式で出力
 	jsonData, err := json.Marshal(entry)
 	if err != nil {
 		// JSON化に失敗した場合はフォールバック
-		fmt.Fprintf(l.output, "%s [%s] %s: %v\n", 
+		fmt.Fprintf(l.output, "%s [%s] %s: %v\n",
 			entry.Timestamp.Format(time.RFC3339),
 			entry.Level.String(),
 			entry.Message,
 			entry.Fields)
 		return
 	}
-	
+
 	fmt.Fprintln(l.output, string(jsonData))
 }
 

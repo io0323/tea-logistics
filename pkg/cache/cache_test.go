@@ -12,7 +12,7 @@ import (
 func TestCacheConfig(t *testing.T) {
 	t.Run("デフォルト設定", func(t *testing.T) {
 		config := DefaultCacheConfig()
-		
+
 		assert.Equal(t, "localhost", config.Host)
 		assert.Equal(t, 6379, config.Port)
 		assert.Equal(t, "", config.Password)
@@ -68,9 +68,9 @@ func TestCacheConfigManager(t *testing.T) {
 		err = manager.ValidateConfig()
 		assert.Error(t, err)
 		// 最初のエラーがプールサイズの場合もある
-		assert.True(t, 
+		assert.True(t,
 			strings.Contains(err.Error(), "ホストが設定されていません") ||
-			strings.Contains(err.Error(), "無効なプールサイズ"),
+				strings.Contains(err.Error(), "無効なプールサイズ"),
 		)
 	})
 }
@@ -79,21 +79,21 @@ func TestCacheKeyBuilder(t *testing.T) {
 	t.Run("基本的なキー構築", func(t *testing.T) {
 		builder := NewCacheKeyBuilder("user")
 		key := builder.Add("123").Add("profile").Build()
-		
+
 		assert.Equal(t, "user:123:profile", key)
 	})
 
 	t.Run("整数の追加", func(t *testing.T) {
 		builder := NewCacheKeyBuilder("product")
 		key := builder.AddInt(456).AddInt64(789).Build()
-		
+
 		assert.Equal(t, "product:456:789", key)
 	})
 
 	t.Run("プレフィックスのみ", func(t *testing.T) {
 		builder := NewCacheKeyBuilder("cache")
 		key := builder.Build()
-		
+
 		assert.Equal(t, "cache", key)
 	})
 }
@@ -101,7 +101,7 @@ func TestCacheKeyBuilder(t *testing.T) {
 func TestCacheStrategy(t *testing.T) {
 	t.Run("デフォルト戦略", func(t *testing.T) {
 		strategy := DefaultCacheStrategy()
-		
+
 		assert.Equal(t, 1*time.Hour, strategy.TTL)
 		assert.Equal(t, 30*time.Minute, strategy.RefreshTTL)
 		assert.Equal(t, 3, strategy.MaxRetries)
@@ -168,7 +168,7 @@ func TestCacheMetricsCollector(t *testing.T) {
 	t.Run("メトリクスのリセット", func(t *testing.T) {
 		collector.ResetMetrics()
 		metrics := collector.GetMetrics()
-		
+
 		assert.Equal(t, int64(0), metrics.Hits)
 		assert.Equal(t, int64(0), metrics.Misses)
 		assert.Equal(t, int64(0), metrics.Sets)
@@ -228,7 +228,7 @@ func TestCacheManagerIntegration(t *testing.T) {
 	config := DefaultCacheConfig()
 	config.Host = "localhost"
 	config.Port = 6379
-	
+
 	manager := NewCacheManager(config)
 	ctx := context.Background()
 

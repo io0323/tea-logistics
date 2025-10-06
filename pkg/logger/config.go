@@ -29,32 +29,32 @@ func DefaultConfig() *Config {
 // ParseConfig 環境変数から設定を解析
 func ParseConfig() *Config {
 	config := DefaultConfig()
-	
+
 	// ログレベル
 	if level := os.Getenv("LOG_LEVEL"); level != "" {
 		config.Level = ParseLogLevel(level)
 	}
-	
+
 	// 出力先
 	if output := os.Getenv("LOG_OUTPUT"); output != "" {
 		config.Output = output
 	}
-	
+
 	// 呼び出し元情報
 	if caller := os.Getenv("LOG_CALLER"); caller != "" {
 		config.Caller = strings.ToLower(caller) == "true"
 	}
-	
+
 	// プリティプリント
 	if pretty := os.Getenv("LOG_PRETTY"); pretty != "" {
 		config.Pretty = strings.ToLower(pretty) == "true"
 	}
-	
+
 	// 時間フォーマット
 	if timeFormat := os.Getenv("LOG_TIME_FORMAT"); timeFormat != "" {
 		config.TimeFormat = timeFormat
 	}
-	
+
 	return config
 }
 
@@ -83,11 +83,11 @@ func (c *Config) Apply(logger *Logger) error {
 	if err != nil {
 		return err
 	}
-	
+
 	logger.SetLevel(c.Level)
 	logger.SetOutput(output)
 	logger.SetCaller(c.Caller)
-	
+
 	return nil
 }
 
@@ -97,10 +97,10 @@ func NewLoggerFromConfig(config *Config) (*Logger, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	logger := NewLogger(config.Level, output)
 	logger.SetCaller(config.Caller)
-	
+
 	return logger, nil
 }
 
@@ -110,7 +110,7 @@ func InitGlobalLogger(config *Config) error {
 	if err != nil {
 		return err
 	}
-	
+
 	SetGlobalLogger(logger)
 	return nil
 }

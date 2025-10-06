@@ -119,12 +119,12 @@ func (s *InventoryService) GetInventoryByLocation(ctx context.Context, location 
 // CreateMovement 在庫移動を作成する
 func (s *InventoryService) CreateMovement(ctx context.Context, req *models.CreateMovementRequest) (*models.InventoryMovement, error) {
 	logger.Info("在庫移動処理開始", map[string]interface{}{
-		"product_id":        req.ProductID,
-		"from_location":     req.FromLocation,
-		"to_location":       req.ToLocation,
-		"quantity":          req.Quantity,
-		"movement_type":     req.MovementType,
-		"reference_number":  req.ReferenceNumber,
+		"product_id":       req.ProductID,
+		"from_location":    req.FromLocation,
+		"to_location":      req.ToLocation,
+		"quantity":         req.Quantity,
+		"movement_type":    req.MovementType,
+		"reference_number": req.ReferenceNumber,
 	})
 
 	// 移動元の在庫をロケーション単位で取得
@@ -200,10 +200,10 @@ func (s *InventoryService) CreateMovement(ctx context.Context, req *models.Creat
 		}
 		if err := s.repo.CreateInventory(ctx, newInventory); err != nil {
 			logger.Error("移動先在庫作成エラー", map[string]interface{}{
-				"product_id":   req.ProductID,
-				"to_location":  req.ToLocation,
-				"quantity":     req.Quantity,
-				"error":        err.Error(),
+				"product_id":  req.ProductID,
+				"to_location": req.ToLocation,
+				"quantity":    req.Quantity,
+				"error":       err.Error(),
 			})
 			return nil, fmt.Errorf("移動先在庫作成エラー: %v", err)
 		}
@@ -228,25 +228,25 @@ func (s *InventoryService) CreateMovement(ctx context.Context, req *models.Creat
 
 	if err := s.repo.CreateMovement(ctx, movement); err != nil {
 		logger.Error("在庫移動作成エラー", map[string]interface{}{
-			"product_id":        req.ProductID,
-			"from_location":     req.FromLocation,
-			"to_location":       req.ToLocation,
-			"quantity":          req.Quantity,
-			"movement_type":     req.MovementType,
-			"reference_number":  req.ReferenceNumber,
-			"error":             err.Error(),
+			"product_id":       req.ProductID,
+			"from_location":    req.FromLocation,
+			"to_location":      req.ToLocation,
+			"quantity":         req.Quantity,
+			"movement_type":    req.MovementType,
+			"reference_number": req.ReferenceNumber,
+			"error":            err.Error(),
 		})
 		return nil, fmt.Errorf("在庫移動作成エラー: %v", err)
 	}
 
 	logger.Info("在庫移動処理完了", map[string]interface{}{
-		"movement_id":        movement.ID,
-		"product_id":         movement.ProductID,
-		"from_location":      movement.FromLocation,
-		"to_location":        movement.ToLocation,
-		"quantity":           movement.Quantity,
-		"movement_type":      movement.MovementType,
-		"reference_number":   movement.ReferenceNumber,
+		"movement_id":      movement.ID,
+		"product_id":       movement.ProductID,
+		"from_location":    movement.FromLocation,
+		"to_location":      movement.ToLocation,
+		"quantity":         movement.Quantity,
+		"movement_type":    movement.MovementType,
+		"reference_number": movement.ReferenceNumber,
 	})
 
 	return movement, nil

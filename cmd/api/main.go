@@ -161,7 +161,7 @@ func main() {
 	routes.SetupTrackingRoutes(router, trackingHandler)
 	routes.SetupNotificationRoutes(router, notifyHandler)
 	routes.SetupDeliveryRoutes(router, deliveryHandler)
-	
+
 	// ヘルスチェックルートの設定
 	health.SetupGlobalHealthRoutes(router)
 

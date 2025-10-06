@@ -14,7 +14,7 @@ import (
 
 // HealthHandler ヘルスチェックハンドラー
 type HealthHandler struct {
-	healthChecker *HealthChecker
+	healthChecker  *HealthChecker
 	metricsManager *MetricsManager
 }
 
@@ -28,16 +28,16 @@ func NewHealthHandler(healthChecker *HealthChecker, metricsManager *MetricsManag
 
 // HealthResponse ヘルスチェックレスポンス
 type HealthResponse struct {
-	Status    HealthStatus           `json:"status"`
-	Timestamp time.Time              `json:"timestamp"`
-	Duration  time.Duration          `json:"duration"`
+	Status    HealthStatus            `json:"status"`
+	Timestamp time.Time               `json:"timestamp"`
+	Duration  time.Duration           `json:"duration"`
 	Checks    map[string]HealthResult `json:"checks,omitempty"`
-	Details   map[string]interface{} `json:"details,omitempty"`
+	Details   map[string]interface{}  `json:"details,omitempty"`
 }
 
 // MetricsResponse メトリクスレスポンス
 type MetricsResponse struct {
-	Timestamp time.Time     `json:"timestamp"`
+	Timestamp time.Time          `json:"timestamp"`
 	Metrics   map[string]*Metric `json:"metrics"`
 }
 
@@ -66,9 +66,9 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 	logger.WithRequestID(c.GetString("request_id")).
 		WithUserID(c.GetString("user_id")).
 		Info("ヘルスチェック実行", map[string]interface{}{
-			"status":        overallStatus,
-			"duration":      duration.String(),
-			"total_checks":  len(results),
+			"status":       overallStatus,
+			"duration":     duration.String(),
+			"total_checks": len(results),
 		})
 
 	// ステータスコードの決定
@@ -244,14 +244,14 @@ func SetupHealthRoutes(router *gin.Engine, healthChecker *HealthChecker, metrics
 	{
 		// 基本的なヘルスチェック
 		health.GET("/", handler.HealthCheck)
-		
+
 		// Kubernetes用のヘルスチェック
 		health.GET("/live", handler.LivenessCheck)
 		health.GET("/ready", handler.ReadinessCheck)
-		
+
 		// 特定のヘルスチェック詳細
 		health.GET("/check/:name", handler.HealthCheckDetail)
-		
+
 		// システム情報
 		health.GET("/system", handler.SystemInfo)
 	}
@@ -261,7 +261,7 @@ func SetupHealthRoutes(router *gin.Engine, healthChecker *HealthChecker, metrics
 	{
 		// JSON形式のメトリクス
 		metrics.GET("/", handler.Metrics)
-		
+
 		// Prometheus形式のメトリクス
 		metrics.GET("/prometheus", handler.PrometheusMetrics)
 	}

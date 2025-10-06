@@ -209,20 +209,20 @@ func (h *InventoryHandler) CreateMovement(c *gin.Context) {
 	logger.WithRequestID(c.GetString("request_id")).
 		WithUserID(c.GetString("user_id")).
 		Info("在庫移動作成リクエスト", map[string]interface{}{
-			"product_id":        req.ProductID,
-			"from_location":     req.FromLocation,
-			"to_location":       req.ToLocation,
-			"quantity":          req.Quantity,
-			"movement_type":     req.MovementType,
-			"reference_number":  req.ReferenceNumber,
+			"product_id":       req.ProductID,
+			"from_location":    req.FromLocation,
+			"to_location":      req.ToLocation,
+			"quantity":         req.Quantity,
+			"movement_type":    req.MovementType,
+			"reference_number": req.ReferenceNumber,
 		})
 
 	// MovementTypeのバリデーション
 	validMovementTypes := map[string]bool{
-		string(models.MovementTypeInbound):     true,
-		string(models.MovementTypeOutbound):    true,
-		string(models.MovementTypeTransfer):    true,
-		string(models.MovementTypeAdjustment):  true,
+		string(models.MovementTypeInbound):    true,
+		string(models.MovementTypeOutbound):   true,
+		string(models.MovementTypeTransfer):   true,
+		string(models.MovementTypeAdjustment): true,
 	}
 	if !validMovementTypes[req.MovementType] {
 		logger.WithRequestID(c.GetString("request_id")).
@@ -266,13 +266,13 @@ func (h *InventoryHandler) CreateMovement(c *gin.Context) {
 		logger.WithRequestID(c.GetString("request_id")).
 			WithUserID(c.GetString("user_id")).
 			Error("在庫移動作成エラー", map[string]interface{}{
-				"product_id":        req.ProductID,
-				"from_location":     req.FromLocation,
-				"to_location":       req.ToLocation,
-				"quantity":          req.Quantity,
-				"movement_type":     req.MovementType,
-				"reference_number":  req.ReferenceNumber,
-				"error":             err.Error(),
+				"product_id":       req.ProductID,
+				"from_location":    req.FromLocation,
+				"to_location":      req.ToLocation,
+				"quantity":         req.Quantity,
+				"movement_type":    req.MovementType,
+				"reference_number": req.ReferenceNumber,
+				"error":            err.Error(),
 			})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -281,13 +281,13 @@ func (h *InventoryHandler) CreateMovement(c *gin.Context) {
 	logger.WithRequestID(c.GetString("request_id")).
 		WithUserID(c.GetString("user_id")).
 		Info("在庫移動作成成功", map[string]interface{}{
-			"movement_id":        movement.ID,
-			"product_id":         movement.ProductID,
-			"from_location":      movement.FromLocation,
-			"to_location":        movement.ToLocation,
-			"quantity":           movement.Quantity,
-			"movement_type":      movement.MovementType,
-			"reference_number":   movement.ReferenceNumber,
+			"movement_id":      movement.ID,
+			"product_id":       movement.ProductID,
+			"from_location":    movement.FromLocation,
+			"to_location":      movement.ToLocation,
+			"quantity":         movement.Quantity,
+			"movement_type":    movement.MovementType,
+			"reference_number": movement.ReferenceNumber,
 		})
 
 	c.JSON(http.StatusCreated, movement)

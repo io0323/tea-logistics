@@ -63,8 +63,8 @@ func (c *CacheManager) Connect(ctx context.Context) error {
 	_, err := c.client.Ping(ctx).Result()
 	if err != nil {
 		logger.Error("Redis接続エラー", map[string]interface{}{
-			"host": c.config.Host,
-			"port": c.config.Port,
+			"host":  c.config.Host,
+			"port":  c.config.Port,
 			"error": err.Error(),
 		})
 		return fmt.Errorf("Redis接続に失敗しました: %v", err)

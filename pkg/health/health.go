@@ -81,9 +81,9 @@ func (h *HealthChecker) CheckAll(ctx context.Context) map[string]HealthResult {
 		wg.Add(1)
 		go func(name string, check HealthCheck) {
 			defer wg.Done()
-			
+
 			result := h.runCheck(ctx, check)
-			
+
 			mu.Lock()
 			results[name] = result
 			mu.Unlock()
@@ -115,13 +115,13 @@ func (h *HealthChecker) Check(ctx context.Context, name string) (HealthResult, b
 // runCheck ヘルスチェックを実行
 func (h *HealthChecker) runCheck(ctx context.Context, check HealthCheck) HealthResult {
 	start := time.Now()
-	
+
 	// タイムアウト付きコンテキストを作成
 	timeout := check.Timeout()
 	if timeout == 0 {
 		timeout = 30 * time.Second
 	}
-	
+
 	checkCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
@@ -186,8 +186,8 @@ func (h *HealthChecker) GetOverallStatus(results map[string]HealthResult) Health
 
 // DatabaseHealthCheck データベースヘルスチェック
 type DatabaseHealthCheck struct {
-	db     *sql.DB
-	name   string
+	db      *sql.DB
+	name    string
 	timeout time.Duration
 }
 
@@ -239,20 +239,20 @@ func (d *DatabaseHealthCheck) Check(ctx context.Context) HealthResult {
 
 	// データベース統計情報の取得
 	stats := d.db.Stats()
-	
+
 	return HealthResult{
 		Name:    d.name,
 		Status:  StatusHealthy,
 		Message: "データベースは正常です",
 		Details: map[string]interface{}{
 			"open_connections":     stats.OpenConnections,
-			"in_use":              stats.InUse,
-			"idle":                stats.Idle,
-			"wait_count":          stats.WaitCount,
-			"wait_duration":       stats.WaitDuration.String(),
-			"max_idle_closed":     stats.MaxIdleClosed,
+			"in_use":               stats.InUse,
+			"idle":                 stats.Idle,
+			"wait_count":           stats.WaitCount,
+			"wait_duration":        stats.WaitDuration.String(),
+			"max_idle_closed":      stats.MaxIdleClosed,
 			"max_idle_time_closed": stats.MaxIdleTimeClosed,
-			"max_lifetime_closed": stats.MaxLifetimeClosed,
+			"max_lifetime_closed":  stats.MaxLifetimeClosed,
 		},
 	}
 }
@@ -355,9 +355,9 @@ func (h *HTTPHealthCheck) Check(ctx context.Context) HealthResult {
 
 // CustomHealthCheck カスタムヘルスチェック
 type CustomHealthCheck struct {
-	name     string
-	checkFn  func(ctx context.Context) HealthResult
-	timeout  time.Duration
+	name    string
+	checkFn func(ctx context.Context) HealthResult
+	timeout time.Duration
 }
 
 // NewCustomHealthCheck 新しいカスタムヘルスチェックを作成

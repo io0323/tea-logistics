@@ -204,7 +204,7 @@ func TestMetricCollector(t *testing.T) {
 
 	t.Run("カウンターメトリクス", func(t *testing.T) {
 		collector.SetCounter("test_counter", 10, map[string]string{"label": "value"})
-		
+
 		metric, exists := collector.GetMetric("test_counter")
 		require.True(t, exists)
 		assert.Equal(t, "test_counter", metric.Name)
@@ -215,7 +215,7 @@ func TestMetricCollector(t *testing.T) {
 
 	t.Run("ゲージメトリクス", func(t *testing.T) {
 		collector.SetGauge("test_gauge", 25.5, nil)
-		
+
 		metric, exists := collector.GetMetric("test_gauge")
 		require.True(t, exists)
 		assert.Equal(t, "test_gauge", metric.Name)
@@ -225,7 +225,7 @@ func TestMetricCollector(t *testing.T) {
 
 	t.Run("カウンターの増加", func(t *testing.T) {
 		collector.IncrementCounter("test_counter", nil)
-		
+
 		metric, exists := collector.GetMetric("test_counter")
 		require.True(t, exists)
 		assert.Equal(t, 11.0, metric.Value)
@@ -240,7 +240,7 @@ func TestMetricCollector(t *testing.T) {
 
 	t.Run("メトリクスの削除", func(t *testing.T) {
 		collector.RemoveMetric("test_counter")
-		
+
 		_, exists := collector.GetMetric("test_counter")
 		assert.False(t, exists)
 	})
@@ -268,7 +268,7 @@ func TestApplicationMetricsCollector(t *testing.T) {
 
 	t.Run("リクエストの記録", func(t *testing.T) {
 		collector.RecordRequest(100*time.Millisecond, 200)
-		
+
 		metrics := collector.GetMetrics()
 		assert.Contains(t, metrics, "requests_total")
 		assert.Contains(t, metrics, "http_requests_total")
@@ -277,14 +277,14 @@ func TestApplicationMetricsCollector(t *testing.T) {
 
 	t.Run("エラーの記録", func(t *testing.T) {
 		collector.RecordError("validation_error")
-		
+
 		metrics := collector.GetMetrics()
 		assert.Contains(t, metrics, "errors_total")
 	})
 
 	t.Run("アクティブユーザーの設定", func(t *testing.T) {
 		collector.SetActiveUsers(150)
-		
+
 		metrics := collector.GetMetrics()
 		activeUsersMetric := metrics["active_users"]
 		assert.Equal(t, 150.0, activeUsersMetric.Value)
@@ -296,21 +296,21 @@ func TestDatabaseMetricsCollector(t *testing.T) {
 
 	t.Run("クエリの記録", func(t *testing.T) {
 		collector.RecordQuery("SELECT", 50*time.Millisecond, true)
-		
+
 		metrics := collector.GetMetrics()
 		assert.Contains(t, metrics, "database_queries_total")
 	})
 
 	t.Run("エラークエリの記録", func(t *testing.T) {
 		collector.RecordQuery("INSERT", 30*time.Millisecond, false)
-		
+
 		metrics := collector.GetMetrics()
 		assert.Contains(t, metrics, "database_errors_total")
 	})
 
 	t.Run("接続数の設定", func(t *testing.T) {
 		collector.SetConnectionCount(10)
-		
+
 		metrics := collector.GetMetrics()
 		connectionsMetric := metrics["database_connections"]
 		assert.Equal(t, 10.0, connectionsMetric.Value)
@@ -322,7 +322,7 @@ func TestMetricsManager(t *testing.T) {
 
 	t.Run("全てのメトリクス収集", func(t *testing.T) {
 		metrics := manager.CollectAllMetrics()
-		
+
 		// プレフィックス付きのメトリクスが含まれていることを確認
 		assert.Contains(t, metrics, "system_memory_alloc_bytes")
 		assert.Contains(t, metrics, "app_requests_total")

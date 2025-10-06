@@ -13,7 +13,7 @@ import (
 func TestRateLimitConfig(t *testing.T) {
 	t.Run("デフォルト設定", func(t *testing.T) {
 		config := DefaultRateLimitConfig()
-		
+
 		assert.Equal(t, StrategyFixedWindow, config.Strategy)
 		assert.Equal(t, 100, config.Limit)
 		assert.Equal(t, 1*time.Minute, config.Window)
@@ -36,7 +36,7 @@ func TestRateLimitResult(t *testing.T) {
 			Strategy:   "fixed_window",
 			Key:        "test_key",
 		}
-		
+
 		assert.True(t, result.Allowed)
 		assert.Equal(t, 100, result.Limit)
 		assert.Equal(t, 50, result.Remaining)
@@ -82,7 +82,7 @@ func TestFixedWindowRateLimiter(t *testing.T) {
 				t.Logf("Redis接続エラー（期待される動作）: %v", err)
 				return
 			}
-			
+
 			// SkipOnErrorがtrueなので、常に許可される
 			assert.True(t, result.Allowed)
 			assert.Equal(t, 100, result.Limit)
@@ -198,7 +198,7 @@ func TestTokenBucketRateLimiter(t *testing.T) {
 				t.Logf("Redis接続エラー（期待される動作）: %v", err)
 				return
 			}
-			
+
 			assert.NoError(t, err)
 			assert.True(t, result.Allowed)
 		}
@@ -227,11 +227,11 @@ func TestRateLimitManager(t *testing.T) {
 	t.Run("レート制限の登録", func(t *testing.T) {
 		config := DefaultRateLimitConfig()
 		manager.RegisterLimiter(StrategyFixedWindow, config)
-		
+
 		// 登録されたレート制限を使用
 		ctx := context.Background()
 		key := "test_manager_key"
-		
+
 		result, err := manager.Allow(ctx, StrategyFixedWindow, key)
 		if err != nil {
 			// Redis接続エラーの場合はスキップ
@@ -246,7 +246,7 @@ func TestRateLimitManager(t *testing.T) {
 	t.Run("未登録の戦略", func(t *testing.T) {
 		ctx := context.Background()
 		key := "test_unregistered_key"
-		
+
 		_, err := manager.Allow(ctx, StrategyLeakyBucket, key)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "が登録されていません")
@@ -256,7 +256,7 @@ func TestRateLimitManager(t *testing.T) {
 func TestAPIProtectionConfig(t *testing.T) {
 	t.Run("デフォルト設定", func(t *testing.T) {
 		config := DefaultAPIProtectionConfig()
-		
+
 		assert.True(t, config.Enabled)
 		assert.Equal(t, StrategyFixedWindow, config.DefaultStrategy)
 		assert.Equal(t, 100, config.DefaultLimit)
@@ -278,7 +278,7 @@ func TestAPIProtectionConfig(t *testing.T) {
 			CustomLimits:    map[string]int{"/api/admin": 50},
 			ErrorResponse:   "カスタムエラーメッセージ",
 		}
-		
+
 		assert.True(t, config.Enabled)
 		assert.Equal(t, StrategyTokenBucket, config.DefaultStrategy)
 		assert.Equal(t, 200, config.DefaultLimit)
@@ -294,7 +294,7 @@ func TestAPIProtectionConfig(t *testing.T) {
 func TestDDoSProtectionConfig(t *testing.T) {
 	t.Run("デフォルト設定", func(t *testing.T) {
 		config := DefaultDDoSProtectionConfig()
-		
+
 		assert.True(t, config.Enabled)
 		assert.Equal(t, 1000, config.MaxRequestsPerMin)
 		assert.Equal(t, 100, config.MaxRequestsPerSec)
@@ -314,7 +314,7 @@ func TestDDoSProtectionConfig(t *testing.T) {
 			AutoBlock:         false,
 			AlertThreshold:    1000,
 		}
-		
+
 		assert.True(t, config.Enabled)
 		assert.Equal(t, 2000, config.MaxRequestsPerMin)
 		assert.Equal(t, 200, config.MaxRequestsPerSec)
@@ -329,7 +329,7 @@ func TestDDoSProtectionConfig(t *testing.T) {
 func TestSecurityHeadersConfig(t *testing.T) {
 	t.Run("デフォルト設定", func(t *testing.T) {
 		config := DefaultSecurityHeadersConfig()
-		
+
 		assert.True(t, config.Enabled)
 		assert.Equal(t, "DENY", config.XFrameOptions)
 		assert.Equal(t, "nosniff", config.XContentTypeOptions)
@@ -342,16 +342,16 @@ func TestSecurityHeadersConfig(t *testing.T) {
 
 	t.Run("カスタム設定", func(t *testing.T) {
 		config := &SecurityHeadersConfig{
-			Enabled:                true,
-			XFrameOptions:          "SAMEORIGIN",
-			XContentTypeOptions:    "nosniff",
-			XSSProtection:          "0",
+			Enabled:                 true,
+			XFrameOptions:           "SAMEORIGIN",
+			XContentTypeOptions:     "nosniff",
+			XSSProtection:           "0",
 			StrictTransportSecurity: "max-age=63072000",
-			ContentSecurityPolicy:  "default-src 'none'",
-			ReferrerPolicy:         "no-referrer",
-			PermissionsPolicy:      "geolocation=(self)",
+			ContentSecurityPolicy:   "default-src 'none'",
+			ReferrerPolicy:          "no-referrer",
+			PermissionsPolicy:       "geolocation=(self)",
 		}
-		
+
 		assert.True(t, config.Enabled)
 		assert.Equal(t, "SAMEORIGIN", config.XFrameOptions)
 		assert.Equal(t, "nosniff", config.XContentTypeOptions)
@@ -371,7 +371,7 @@ func TestClientInfo(t *testing.T) {
 			UserAgent: "Mozilla/5.0",
 			Path:      "/api/test",
 		}
-		
+
 		assert.Equal(t, "192.168.1.1", clientInfo.IP)
 		assert.Equal(t, "user123", clientInfo.UserID)
 		assert.Equal(t, "Mozilla/5.0", clientInfo.UserAgent)
@@ -386,7 +386,7 @@ func TestTokenBucket(t *testing.T) {
 			Tokens:     10,
 			LastRefill: now,
 		}
-		
+
 		assert.Equal(t, 10, bucket.Tokens)
 		assert.Equal(t, now, bucket.LastRefill)
 	})
@@ -397,15 +397,15 @@ func TestTokenBucket(t *testing.T) {
 			Tokens:     5,
 			LastRefill: now.Add(-2 * time.Second),
 		}
-		
+
 		// トークンを補充
 		config := DefaultRateLimitConfig()
 		config.RefillRate = 1
 		config.RefillTime = 1 * time.Second
-		
+
 		limiter := &TokenBucketRateLimiter{config: config}
 		updatedBucket := limiter.refillTokens(bucket, now)
-		
+
 		assert.GreaterOrEqual(t, updatedBucket.Tokens, bucket.Tokens)
 		assert.Equal(t, now, updatedBucket.LastRefill)
 	})
@@ -424,9 +424,9 @@ func TestGlobalRateLimitManager(t *testing.T) {
 	t.Run("グローバルレート制限管理の初期化", func(t *testing.T) {
 		cacheConfig := cache.DefaultCacheConfig()
 		cacheManager := cache.NewCacheManager(cacheConfig)
-		
+
 		InitGlobalRateLimitManager(cacheManager)
-		
+
 		manager := GetGlobalRateLimitManager()
 		assert.NotNil(t, manager)
 	})
@@ -434,7 +434,7 @@ func TestGlobalRateLimitManager(t *testing.T) {
 	t.Run("グローバルレート制限の使用", func(t *testing.T) {
 		ctx := context.Background()
 		key := "test_global_key"
-		
+
 		// グローバルレート制限を使用
 		result, err := AllowGlobal(ctx, StrategyFixedWindow, key)
 		if err != nil {
@@ -458,14 +458,14 @@ func TestRateLimitErrorHandling(t *testing.T) {
 			RefillRate: -1,
 			RefillTime: 0,
 		}
-		
+
 		cacheConfig := cache.DefaultCacheConfig()
 		cacheManager := cache.NewCacheManager(cacheConfig)
 		limiter := NewFixedWindowRateLimiter(invalidConfig, cacheManager)
-		
+
 		ctx := context.Background()
 		key := "test_invalid_key"
-		
+
 		_, err := limiter.Allow(ctx, key)
 		if err != nil {
 			// Redis接続エラーの場合はスキップ
@@ -479,9 +479,9 @@ func TestRateLimitErrorHandling(t *testing.T) {
 		cacheConfig := cache.DefaultCacheConfig()
 		cacheManager := cache.NewCacheManager(cacheConfig)
 		limiter := NewFixedWindowRateLimiter(config, cacheManager)
-		
+
 		ctx := context.Background()
-		
+
 		// 空のキーでの操作
 		_, err := limiter.Allow(ctx, "")
 		if err != nil {

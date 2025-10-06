@@ -14,9 +14,9 @@ import (
 type RateLimitStrategy string
 
 const (
-	StrategyFixedWindow    RateLimitStrategy = "fixed_window"
-	StrategySlidingWindow  RateLimitStrategy = "sliding_window"
-	StrategyTokenBucket    RateLimitStrategy = "token_bucket"
+	StrategyFixedWindow   RateLimitStrategy = "fixed_window"
+	StrategySlidingWindow RateLimitStrategy = "sliding_window"
+	StrategyTokenBucket   RateLimitStrategy = "token_bucket"
 	StrategyLeakyBucket   RateLimitStrategy = "leaky_bucket"
 )
 
@@ -48,13 +48,13 @@ func DefaultRateLimitConfig() *RateLimitConfig {
 
 // RateLimitResult レート制限結果
 type RateLimitResult struct {
-	Allowed     bool          `json:"allowed"`
-	Limit       int           `json:"limit"`
-	Remaining   int           `json:"remaining"`
-	ResetTime   time.Time     `json:"reset_time"`
-	RetryAfter  time.Duration `json:"retry_after"`
-	Strategy    string        `json:"strategy"`
-	Key         string        `json:"key"`
+	Allowed    bool          `json:"allowed"`
+	Limit      int           `json:"limit"`
+	Remaining  int           `json:"remaining"`
+	ResetTime  time.Time     `json:"reset_time"`
+	RetryAfter time.Duration `json:"retry_after"`
+	Strategy   string        `json:"strategy"`
+	Key        string        `json:"key"`
 }
 
 // RateLimiter レート制限インターフェース
@@ -81,14 +81,14 @@ func NewFixedWindowRateLimiter(config *RateLimitConfig, cache *cache.CacheManage
 // Allow リクエストを許可するかチェック
 func (r *FixedWindowRateLimiter) Allow(ctx context.Context, key string) (*RateLimitResult, error) {
 	cacheKey := r.buildCacheKey(key)
-	
+
 	// 現在のウィンドウの開始時間を計算
 	now := time.Now()
 	windowStart := now.Truncate(r.config.Window)
-	
+
 	// ウィンドウキーを作成
 	windowKey := fmt.Sprintf("%s:window:%d", cacheKey, windowStart.Unix())
-	
+
 	// 現在のカウントを取得
 	count, err := r.getCurrentCount(ctx, windowKey)
 	if err != nil {
@@ -98,22 +98,22 @@ func (r *FixedWindowRateLimiter) Allow(ctx context.Context, key string) (*RateLi
 				"error": err.Error(),
 			})
 			return &RateLimitResult{
-				Allowed:    true,
-				Limit:      r.config.Limit,
-				Remaining:  r.config.Limit,
-				ResetTime:  windowStart.Add(r.config.Window),
-				Strategy:   string(r.config.Strategy),
-				Key:        key,
+				Allowed:   true,
+				Limit:     r.config.Limit,
+				Remaining: r.config.Limit,
+				ResetTime: windowStart.Add(r.config.Window),
+				Strategy:  string(r.config.Strategy),
+				Key:       key,
 			}, nil
 		}
 		return nil, err
 	}
-	
+
 	// 制限をチェック
 	if count >= r.config.Limit {
 		resetTime := windowStart.Add(r.config.Window)
 		retryAfter := resetTime.Sub(now)
-		
+
 		logger.Warn("レート制限に達しました", map[string]interface{}{
 			"key":         key,
 			"count":       count,
@@ -121,7 +121,7 @@ func (r *FixedWindowRateLimiter) Allow(ctx context.Context, key string) (*RateLi
 			"reset_time":  resetTime,
 			"retry_after": retryAfter.String(),
 		})
-		
+
 		return &RateLimitResult{
 			Allowed:    false,
 			Limit:      r.config.Limit,
@@ -132,7 +132,7 @@ func (r *FixedWindowRateLimiter) Allow(ctx context.Context, key string) (*RateLi
 			Key:        key,
 		}, nil
 	}
-	
+
 	// カウントを増加
 	newCount, err := r.incrementCount(ctx, windowKey)
 	if err != nil {
@@ -142,36 +142,36 @@ func (r *FixedWindowRateLimiter) Allow(ctx context.Context, key string) (*RateLi
 				"error": err.Error(),
 			})
 			return &RateLimitResult{
-				Allowed:    true,
-				Limit:      r.config.Limit,
-				Remaining:  r.config.Limit - count,
-				ResetTime:  windowStart.Add(r.config.Window),
-				Strategy:   string(r.config.Strategy),
-				Key:        key,
+				Allowed:   true,
+				Limit:     r.config.Limit,
+				Remaining: r.config.Limit - count,
+				ResetTime: windowStart.Add(r.config.Window),
+				Strategy:  string(r.config.Strategy),
+				Key:       key,
 			}, nil
 		}
 		return nil, err
 	}
-	
+
 	remaining := r.config.Limit - newCount
 	if remaining < 0 {
 		remaining = 0
 	}
-	
+
 	logger.Debug("レート制限チェック成功", map[string]interface{}{
 		"key":       key,
 		"count":     newCount,
 		"limit":     r.config.Limit,
 		"remaining": remaining,
 	})
-	
+
 	return &RateLimitResult{
-		Allowed:    true,
-		Limit:      r.config.Limit,
-		Remaining:  remaining,
-		ResetTime:  windowStart.Add(r.config.Window),
-		Strategy:   string(r.config.Strategy),
-		Key:        key,
+		Allowed:   true,
+		Limit:     r.config.Limit,
+		Remaining: remaining,
+		ResetTime: windowStart.Add(r.config.Window),
+		Strategy:  string(r.config.Strategy),
+		Key:       key,
 	}, nil
 }
 
@@ -181,7 +181,7 @@ func (r *FixedWindowRateLimiter) Reset(ctx context.Context, key string) error {
 	now := time.Now()
 	windowStart := now.Truncate(r.config.Window)
 	windowKey := fmt.Sprintf("%s:window:%d", cacheKey, windowStart.Unix())
-	
+
 	err := r.cache.Delete(ctx, windowKey)
 	if err != nil {
 		logger.Error("レート制限リセットエラー", map[string]interface{}{
@@ -190,11 +190,11 @@ func (r *FixedWindowRateLimiter) Reset(ctx context.Context, key string) error {
 		})
 		return err
 	}
-	
+
 	logger.Info("レート制限をリセットしました", map[string]interface{}{
 		"key": key,
 	})
-	
+
 	return nil
 }
 
@@ -204,7 +204,7 @@ func (r *FixedWindowRateLimiter) GetLimit(ctx context.Context, key string) (*Rat
 	now := time.Now()
 	windowStart := now.Truncate(r.config.Window)
 	windowKey := fmt.Sprintf("%s:window:%d", cacheKey, windowStart.Unix())
-	
+
 	count, err := r.getCurrentCount(ctx, windowKey)
 	if err != nil {
 		if r.config.SkipOnError {
@@ -213,19 +213,19 @@ func (r *FixedWindowRateLimiter) GetLimit(ctx context.Context, key string) (*Rat
 			return nil, err
 		}
 	}
-	
+
 	remaining := r.config.Limit - count
 	if remaining < 0 {
 		remaining = 0
 	}
-	
+
 	return &RateLimitResult{
-		Allowed:    count < r.config.Limit,
-		Limit:      r.config.Limit,
-		Remaining:  remaining,
-		ResetTime:  windowStart.Add(r.config.Window),
-		Strategy:   string(r.config.Strategy),
-		Key:        key,
+		Allowed:   count < r.config.Limit,
+		Limit:     r.config.Limit,
+		Remaining: remaining,
+		ResetTime: windowStart.Add(r.config.Window),
+		Strategy:  string(r.config.Strategy),
+		Key:       key,
 	}, nil
 }
 
@@ -244,14 +244,14 @@ func (r *FixedWindowRateLimiter) getCurrentCount(ctx context.Context, windowKey 
 		}
 		return 0, err
 	}
-	
+
 	// 文字列を整数に変換
 	var count int
 	_, err = fmt.Sscanf(val, "%d", &count)
 	if err != nil {
 		return 0, fmt.Errorf("カウント値の解析に失敗しました: %v", err)
 	}
-	
+
 	return count, nil
 }
 
@@ -259,7 +259,7 @@ func (r *FixedWindowRateLimiter) getCurrentCount(ctx context.Context, windowKey 
 func (r *FixedWindowRateLimiter) incrementCount(ctx context.Context, windowKey string) (int, error) {
 	// ウィンドウの有効期限を設定
 	expiration := r.config.Window
-	
+
 	// カウントを増加
 	count, err := r.cache.Increment(ctx, windowKey)
 	if err != nil {
@@ -273,7 +273,7 @@ func (r *FixedWindowRateLimiter) incrementCount(ctx context.Context, windowKey s
 		}
 		return 0, err
 	}
-	
+
 	// 有効期限を更新
 	err = r.cache.Expire(ctx, windowKey, expiration)
 	if err != nil {
@@ -283,7 +283,7 @@ func (r *FixedWindowRateLimiter) incrementCount(ctx context.Context, windowKey s
 			"error":      err.Error(),
 		})
 	}
-	
+
 	return int(count), nil
 }
 
@@ -305,10 +305,10 @@ func NewSlidingWindowRateLimiter(config *RateLimitConfig, cache *cache.CacheMana
 func (r *SlidingWindowRateLimiter) Allow(ctx context.Context, key string) (*RateLimitResult, error) {
 	cacheKey := r.buildCacheKey(key)
 	now := time.Now()
-	
+
 	// スライディングウィンドウの開始時間を計算
 	windowStart := now.Add(-r.config.Window)
-	
+
 	// 古いエントリを削除
 	err := r.cleanOldEntries(ctx, cacheKey, windowStart)
 	if err != nil {
@@ -321,7 +321,7 @@ func (r *SlidingWindowRateLimiter) Allow(ctx context.Context, key string) (*Rate
 			return nil, err
 		}
 	}
-	
+
 	// 現在のカウントを取得
 	count, err := r.getCurrentCount(ctx, cacheKey)
 	if err != nil {
@@ -331,28 +331,28 @@ func (r *SlidingWindowRateLimiter) Allow(ctx context.Context, key string) (*Rate
 				"error": err.Error(),
 			})
 			return &RateLimitResult{
-				Allowed:    true,
-				Limit:      r.config.Limit,
-				Remaining:  r.config.Limit,
-				ResetTime:  now.Add(r.config.Window),
-				Strategy:   string(r.config.Strategy),
-				Key:        key,
+				Allowed:   true,
+				Limit:     r.config.Limit,
+				Remaining: r.config.Limit,
+				ResetTime: now.Add(r.config.Window),
+				Strategy:  string(r.config.Strategy),
+				Key:       key,
 			}, nil
 		}
 		return nil, err
 	}
-	
+
 	// 制限をチェック
 	if count >= r.config.Limit {
 		retryAfter := r.config.Window
-		
+
 		logger.Warn("スライディングウィンドウレート制限に達しました", map[string]interface{}{
 			"key":         key,
 			"count":       count,
 			"limit":       r.config.Limit,
 			"retry_after": retryAfter.String(),
 		})
-		
+
 		return &RateLimitResult{
 			Allowed:    false,
 			Limit:      r.config.Limit,
@@ -363,7 +363,7 @@ func (r *SlidingWindowRateLimiter) Allow(ctx context.Context, key string) (*Rate
 			Key:        key,
 		}, nil
 	}
-	
+
 	// 新しいエントリを追加
 	err = r.addEntry(ctx, cacheKey, now)
 	if err != nil {
@@ -373,43 +373,43 @@ func (r *SlidingWindowRateLimiter) Allow(ctx context.Context, key string) (*Rate
 				"error": err.Error(),
 			})
 			return &RateLimitResult{
-				Allowed:    true,
-				Limit:      r.config.Limit,
-				Remaining:  r.config.Limit - count,
-				ResetTime:  now.Add(r.config.Window),
-				Strategy:   string(r.config.Strategy),
-				Key:        key,
+				Allowed:   true,
+				Limit:     r.config.Limit,
+				Remaining: r.config.Limit - count,
+				ResetTime: now.Add(r.config.Window),
+				Strategy:  string(r.config.Strategy),
+				Key:       key,
 			}, nil
 		}
 		return nil, err
 	}
-	
+
 	remaining := r.config.Limit - count - 1
 	if remaining < 0 {
 		remaining = 0
 	}
-	
+
 	logger.Debug("スライディングウィンドウレート制限チェック成功", map[string]interface{}{
 		"key":       key,
 		"count":     count + 1,
 		"limit":     r.config.Limit,
 		"remaining": remaining,
 	})
-	
+
 	return &RateLimitResult{
-		Allowed:    true,
-		Limit:      r.config.Limit,
-		Remaining:  remaining,
-		ResetTime:  now.Add(r.config.Window),
-		Strategy:   string(r.config.Strategy),
-		Key:        key,
+		Allowed:   true,
+		Limit:     r.config.Limit,
+		Remaining: remaining,
+		ResetTime: now.Add(r.config.Window),
+		Strategy:  string(r.config.Strategy),
+		Key:       key,
 	}, nil
 }
 
 // Reset レート制限をリセット
 func (r *SlidingWindowRateLimiter) Reset(ctx context.Context, key string) error {
 	cacheKey := r.buildCacheKey(key)
-	
+
 	// パターンに一致するキーを削除
 	pattern := fmt.Sprintf("%s:*", cacheKey)
 	keys, err := r.cache.Keys(ctx, pattern)
@@ -420,7 +420,7 @@ func (r *SlidingWindowRateLimiter) Reset(ctx context.Context, key string) error 
 		})
 		return err
 	}
-	
+
 	for _, k := range keys {
 		err = r.cache.Delete(ctx, k)
 		if err != nil {
@@ -430,11 +430,11 @@ func (r *SlidingWindowRateLimiter) Reset(ctx context.Context, key string) error 
 			})
 		}
 	}
-	
+
 	logger.Info("スライディングウィンドウレート制限をリセットしました", map[string]interface{}{
 		"key": key,
 	})
-	
+
 	return nil
 }
 
@@ -443,13 +443,13 @@ func (r *SlidingWindowRateLimiter) GetLimit(ctx context.Context, key string) (*R
 	cacheKey := r.buildCacheKey(key)
 	now := time.Now()
 	windowStart := now.Add(-r.config.Window)
-	
+
 	// 古いエントリを削除
 	err := r.cleanOldEntries(ctx, cacheKey, windowStart)
 	if err != nil && !r.config.SkipOnError {
 		return nil, err
 	}
-	
+
 	count, err := r.getCurrentCount(ctx, cacheKey)
 	if err != nil {
 		if r.config.SkipOnError {
@@ -458,19 +458,19 @@ func (r *SlidingWindowRateLimiter) GetLimit(ctx context.Context, key string) (*R
 			return nil, err
 		}
 	}
-	
+
 	remaining := r.config.Limit - count
 	if remaining < 0 {
 		remaining = 0
 	}
-	
+
 	return &RateLimitResult{
-		Allowed:    count < r.config.Limit,
-		Limit:      r.config.Limit,
-		Remaining:  remaining,
-		ResetTime:  now.Add(r.config.Window),
-		Strategy:   string(r.config.Strategy),
-		Key:        key,
+		Allowed:   count < r.config.Limit,
+		Limit:     r.config.Limit,
+		Remaining: remaining,
+		ResetTime: now.Add(r.config.Window),
+		Strategy:  string(r.config.Strategy),
+		Key:       key,
 	}, nil
 }
 
@@ -494,7 +494,7 @@ func (r *SlidingWindowRateLimiter) getCurrentCount(ctx context.Context, cacheKey
 	if err != nil {
 		return 0, err
 	}
-	
+
 	return len(keys), nil
 }
 
@@ -502,7 +502,7 @@ func (r *SlidingWindowRateLimiter) getCurrentCount(ctx context.Context, cacheKey
 func (r *SlidingWindowRateLimiter) addEntry(ctx context.Context, cacheKey string, timestamp time.Time) error {
 	entryKey := fmt.Sprintf("%s:entry:%d", cacheKey, timestamp.Unix())
 	expiration := r.config.Window
-	
+
 	return r.cache.Set(ctx, entryKey, "1", expiration)
 }
 
@@ -525,7 +525,7 @@ func NewTokenBucketRateLimiter(config *RateLimitConfig, cache *cache.CacheManage
 func (r *TokenBucketRateLimiter) Allow(ctx context.Context, key string) (*RateLimitResult, error) {
 	cacheKey := r.buildCacheKey(key)
 	now := time.Now()
-	
+
 	// トークンバケットの状態を取得
 	bucket, err := r.getBucketState(ctx, cacheKey)
 	if err != nil {
@@ -535,31 +535,31 @@ func (r *TokenBucketRateLimiter) Allow(ctx context.Context, key string) (*RateLi
 				"error": err.Error(),
 			})
 			return &RateLimitResult{
-				Allowed:    true,
-				Limit:      r.config.Burst,
-				Remaining:  r.config.Burst,
-				ResetTime:  now.Add(r.config.RefillTime),
-				Strategy:   string(r.config.Strategy),
-				Key:        key,
+				Allowed:   true,
+				Limit:     r.config.Burst,
+				Remaining: r.config.Burst,
+				ResetTime: now.Add(r.config.RefillTime),
+				Strategy:  string(r.config.Strategy),
+				Key:       key,
 			}, nil
 		}
 		return nil, err
 	}
-	
+
 	// トークンを補充
 	bucket = r.refillTokens(bucket, now)
-	
+
 	// トークンが利用可能かチェック
 	if bucket.Tokens <= 0 {
 		retryAfter := r.config.RefillTime
-		
+
 		logger.Warn("トークンバケットが空です", map[string]interface{}{
 			"key":         key,
 			"tokens":      bucket.Tokens,
 			"burst":       r.config.Burst,
 			"retry_after": retryAfter.String(),
 		})
-		
+
 		return &RateLimitResult{
 			Allowed:    false,
 			Limit:      r.config.Burst,
@@ -570,11 +570,11 @@ func (r *TokenBucketRateLimiter) Allow(ctx context.Context, key string) (*RateLi
 			Key:        key,
 		}, nil
 	}
-	
+
 	// トークンを消費
 	bucket.Tokens--
 	bucket.LastRefill = now
-	
+
 	// バケット状態を保存
 	err = r.saveBucketState(ctx, cacheKey, bucket)
 	if err != nil {
@@ -587,28 +587,28 @@ func (r *TokenBucketRateLimiter) Allow(ctx context.Context, key string) (*RateLi
 			return nil, err
 		}
 	}
-	
+
 	logger.Debug("トークンバケットチェック成功", map[string]interface{}{
 		"key":       key,
 		"tokens":    bucket.Tokens,
 		"burst":     r.config.Burst,
 		"remaining": bucket.Tokens,
 	})
-	
+
 	return &RateLimitResult{
-		Allowed:    true,
-		Limit:      r.config.Burst,
-		Remaining:  bucket.Tokens,
-		ResetTime:  bucket.LastRefill.Add(r.config.RefillTime),
-		Strategy:   string(r.config.Strategy),
-		Key:        key,
+		Allowed:   true,
+		Limit:     r.config.Burst,
+		Remaining: bucket.Tokens,
+		ResetTime: bucket.LastRefill.Add(r.config.RefillTime),
+		Strategy:  string(r.config.Strategy),
+		Key:       key,
 	}, nil
 }
 
 // Reset レート制限をリセット
 func (r *TokenBucketRateLimiter) Reset(ctx context.Context, key string) error {
 	cacheKey := r.buildCacheKey(key)
-	
+
 	err := r.cache.Delete(ctx, cacheKey)
 	if err != nil {
 		logger.Error("トークンバケットリセットエラー", map[string]interface{}{
@@ -617,11 +617,11 @@ func (r *TokenBucketRateLimiter) Reset(ctx context.Context, key string) error {
 		})
 		return err
 	}
-	
+
 	logger.Info("トークンバケットをリセットしました", map[string]interface{}{
 		"key": key,
 	})
-	
+
 	return nil
 }
 
@@ -629,7 +629,7 @@ func (r *TokenBucketRateLimiter) Reset(ctx context.Context, key string) error {
 func (r *TokenBucketRateLimiter) GetLimit(ctx context.Context, key string) (*RateLimitResult, error) {
 	cacheKey := r.buildCacheKey(key)
 	now := time.Now()
-	
+
 	bucket, err := r.getBucketState(ctx, cacheKey)
 	if err != nil {
 		if r.config.SkipOnError {
@@ -641,16 +641,16 @@ func (r *TokenBucketRateLimiter) GetLimit(ctx context.Context, key string) (*Rat
 			return nil, err
 		}
 	}
-	
+
 	bucket = r.refillTokens(bucket, now)
-	
+
 	return &RateLimitResult{
-		Allowed:    bucket.Tokens > 0,
-		Limit:      r.config.Burst,
-		Remaining:  bucket.Tokens,
-		ResetTime:  bucket.LastRefill.Add(r.config.RefillTime),
-		Strategy:   string(r.config.Strategy),
-		Key:        key,
+		Allowed:   bucket.Tokens > 0,
+		Limit:     r.config.Burst,
+		Remaining: bucket.Tokens,
+		ResetTime: bucket.LastRefill.Add(r.config.RefillTime),
+		Strategy:  string(r.config.Strategy),
+		Key:       key,
 	}, nil
 }
 
@@ -679,7 +679,7 @@ func (r *TokenBucketRateLimiter) getBucketState(ctx context.Context, cacheKey st
 		}
 		return nil, err
 	}
-	
+
 	return &bucket, nil
 }
 
@@ -693,7 +693,7 @@ func (r *TokenBucketRateLimiter) saveBucketState(ctx context.Context, cacheKey s
 func (r *TokenBucketRateLimiter) refillTokens(bucket *TokenBucket, now time.Time) *TokenBucket {
 	elapsed := now.Sub(bucket.LastRefill)
 	refillCount := int(elapsed / r.config.RefillTime)
-	
+
 	if refillCount > 0 {
 		bucket.Tokens += refillCount * r.config.RefillRate
 		if bucket.Tokens > r.config.Burst {
@@ -701,7 +701,7 @@ func (r *TokenBucketRateLimiter) refillTokens(bucket *TokenBucket, now time.Time
 		}
 		bucket.LastRefill = bucket.LastRefill.Add(time.Duration(refillCount) * r.config.RefillTime)
 	}
-	
+
 	return bucket
 }
 
@@ -741,7 +741,7 @@ func (m *RateLimitManager) Allow(ctx context.Context, strategy RateLimitStrategy
 	if !exists {
 		return nil, fmt.Errorf("レート制限戦略 '%s' が登録されていません", strategy)
 	}
-	
+
 	return limiter.Allow(ctx, key)
 }
 
@@ -751,7 +751,7 @@ func (m *RateLimitManager) Reset(ctx context.Context, strategy RateLimitStrategy
 	if !exists {
 		return fmt.Errorf("レート制限戦略 '%s' が登録されていません", strategy)
 	}
-	
+
 	return limiter.Reset(ctx, key)
 }
 
@@ -761,7 +761,7 @@ func (m *RateLimitManager) GetLimit(ctx context.Context, strategy RateLimitStrat
 	if !exists {
 		return nil, fmt.Errorf("レート制限戦略 '%s' が登録されていません", strategy)
 	}
-	
+
 	return limiter.GetLimit(ctx, key)
 }
 

@@ -103,7 +103,7 @@ func (e *EnvVarManager) Exists(key string) bool {
 func (e *EnvVarManager) GetAll() map[string]string {
 	result := make(map[string]string)
 	prefix := e.prefix + "_"
-	
+
 	for _, env := range os.Environ() {
 		if strings.HasPrefix(env, prefix) {
 			parts := strings.SplitN(env, "=", 2)
@@ -113,7 +113,7 @@ func (e *EnvVarManager) GetAll() map[string]string {
 			}
 		}
 	}
-	
+
 	return result
 }
 
@@ -133,51 +133,51 @@ func (e *EnvVarManager) ApplyConfigToEnv(config *Config) error {
 	if err := e.SetLogLevel("LEVEL", config.Level); err != nil {
 		return fmt.Errorf("LOG_LEVELの設定に失敗: %v", err)
 	}
-	
+
 	if err := e.SetString("OUTPUT", config.Output); err != nil {
 		return fmt.Errorf("LOG_OUTPUTの設定に失敗: %v", err)
 	}
-	
+
 	if err := e.SetBool("CALLER", config.Caller); err != nil {
 		return fmt.Errorf("LOG_CALLERの設定に失敗: %v", err)
 	}
-	
+
 	if err := e.SetBool("PRETTY", config.Pretty); err != nil {
 		return fmt.Errorf("LOG_PRETTYの設定に失敗: %v", err)
 	}
-	
+
 	if err := e.SetString("TIME_FORMAT", config.TimeFormat); err != nil {
 		return fmt.Errorf("LOG_TIME_FORMATの設定に失敗: %v", err)
 	}
-	
+
 	return nil
 }
 
 // ValidateEnv 環境変数の妥当性を検証
 func (e *EnvVarManager) ValidateEnv() []string {
 	var errors []string
-	
+
 	// ログレベルの検証
 	if level := e.GetString("LEVEL", ""); level != "" {
 		if ParseLogLevel(level) == INFO && strings.ToUpper(level) != "INFO" {
 			errors = append(errors, fmt.Sprintf("無効なログレベル: %s", level))
 		}
 	}
-	
+
 	// 出力先の検証
 	if output := e.GetString("OUTPUT", ""); output != "" {
 		if output != "stdout" && output != "stderr" && output != "null" {
 			// ファイルパスの場合は存在チェックはしない（実行時に作成される可能性がある）
 		}
 	}
-	
+
 	// 時間フォーマットの検証
 	if timeFormat := e.GetString("TIME_FORMAT", ""); timeFormat != "" {
 		if err := parseTimeFormat(timeFormat); err != nil {
 			errors = append(errors, fmt.Sprintf("無効な時間フォーマット: %s", timeFormat))
 		}
 	}
-	
+
 	return errors
 }
 

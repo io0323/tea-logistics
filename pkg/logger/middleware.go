@@ -13,11 +13,11 @@ import (
 
 // RequestLogConfig リクエストログ設定
 type RequestLogConfig struct {
-	SkipPaths     []string `json:"skip_paths"`
-	SkipHeaders   []string `json:"skip_headers"`
-	LogRequestBody bool    `json:"log_request_body"`
-	LogResponseBody bool   `json:"log_response_body"`
-	MaxBodySize   int      `json:"max_body_size"`
+	SkipPaths       []string `json:"skip_paths"`
+	SkipHeaders     []string `json:"skip_headers"`
+	LogRequestBody  bool     `json:"log_request_body"`
+	LogResponseBody bool     `json:"log_response_body"`
+	MaxBodySize     int      `json:"max_body_size"`
 }
 
 // DefaultRequestLogConfig デフォルトのリクエストログ設定
@@ -44,7 +44,7 @@ func RequestLogger(config *RequestLogConfig) gin.HandlerFunc {
 	if config == nil {
 		config = DefaultRequestLogConfig()
 	}
-	
+
 	return gin.LoggerWithConfig(gin.LoggerConfig{
 		Formatter: func(param gin.LogFormatterParams) string {
 			// スキップパスのチェック
@@ -53,19 +53,19 @@ func RequestLogger(config *RequestLogConfig) gin.HandlerFunc {
 					return ""
 				}
 			}
-			
+
 			// リクエストIDの生成
 			requestID := param.Request.Header.Get("X-Request-ID")
 			if requestID == "" {
 				requestID = uuid.New().String()
 			}
-			
+
 			// ユーザーIDの取得
 			userID := param.Request.Header.Get("X-User-ID")
-			
+
 			// トレースIDの取得
 			traceID := param.Request.Header.Get("X-Trace-ID")
-			
+
 			// リクエストボディの取得
 			var requestBody string
 			if config.LogRequestBody && param.Request.Body != nil {
@@ -79,7 +79,7 @@ func RequestLogger(config *RequestLogConfig) gin.HandlerFunc {
 					}
 				}
 			}
-			
+
 			// ヘッダーのフィルタリング
 			filteredHeaders := make(map[string]string)
 			for name, values := range param.Request.Header {
@@ -94,27 +94,27 @@ func RequestLogger(config *RequestLogConfig) gin.HandlerFunc {
 					filteredHeaders[name] = values[0]
 				}
 			}
-			
+
 			// ログエントリの作成
 			fields := map[string]interface{}{
-				"method":      param.Method,
-				"path":        param.Path,
-				"status":      param.StatusCode,
-				"latency":     param.Latency.String(),
-				"client_ip":   param.ClientIP,
-				"user_agent":  param.Request.UserAgent(),
-				"headers":     filteredHeaders,
+				"method":     param.Method,
+				"path":       param.Path,
+				"status":     param.StatusCode,
+				"latency":    param.Latency.String(),
+				"client_ip":  param.ClientIP,
+				"user_agent": param.Request.UserAgent(),
+				"headers":    filteredHeaders,
 			}
-			
+
 			if requestBody != "" {
 				fields["request_body"] = requestBody
 			}
-			
+
 			// レスポンスボディのログ（エラー時のみ）
 			if config.LogResponseBody && param.StatusCode >= 400 {
 				// レスポンスボディは後で処理
 			}
-			
+
 			// ログレベルの決定
 			var level LogLevel
 			switch {
@@ -125,16 +125,16 @@ func RequestLogger(config *RequestLogConfig) gin.HandlerFunc {
 			default:
 				level = INFO
 			}
-			
+
 			// ログ出力
 			logger := GetGlobalLogger().
 				WithRequestID(requestID).
 				WithUserID(userID).
 				WithTraceID(traceID)
-			
+
 			message := fmt.Sprintf("%s %s", param.Method, param.Path)
 			logger.log(level, message, fields)
-			
+
 			return "" // ginのデフォルトログは無効化
 		},
 		Output: io.Discard, // 出力は上記で処理
@@ -146,30 +146,30 @@ func ResponseLogger(config *RequestLogConfig) gin.HandlerFunc {
 	if config == nil {
 		config = DefaultRequestLogConfig()
 	}
-	
+
 	return func(c *gin.Context) {
 		// レスポンスボディをキャプチャするためのライター
 		blw := &bodyLogWriter{body: &bytes.Buffer{}, ResponseWriter: c.Writer}
 		c.Writer = blw
-		
+
 		c.Next()
-		
+
 		// エラー時のみレスポンスボディをログ
 		if config.LogResponseBody && c.Writer.Status() >= 400 {
 			requestID := c.GetHeader("X-Request-ID")
 			userID := c.GetHeader("X-User-ID")
 			traceID := c.GetHeader("X-Trace-ID")
-			
+
 			responseBody := blw.body.String()
 			if len(responseBody) > config.MaxBodySize {
 				responseBody = responseBody[:config.MaxBodySize] + "..."
 			}
-			
+
 			logger := GetGlobalLogger().
 				WithRequestID(requestID).
 				WithUserID(userID).
 				WithTraceID(traceID)
-			
+
 			logger.Warn("Response error", map[string]interface{}{
 				"status":        c.Writer.Status(),
 				"path":          c.Request.URL.Path,
@@ -196,18 +196,18 @@ func ErrorLogger() gin.HandlerFunc {
 		requestID := c.GetHeader("X-Request-ID")
 		userID := c.GetHeader("X-User-ID")
 		traceID := c.GetHeader("X-Trace-ID")
-		
+
 		logger := GetGlobalLogger().
 			WithRequestID(requestID).
 			WithUserID(userID).
 			WithTraceID(traceID)
-		
+
 		logger.Error("Panic recovered", map[string]interface{}{
-			"error": recovered,
-			"path":  c.Request.URL.Path,
+			"error":  recovered,
+			"path":   c.Request.URL.Path,
 			"method": c.Request.Method,
 		})
-		
+
 		c.AbortWithStatus(http.StatusInternalServerError)
 	})
 }
@@ -219,7 +219,7 @@ func RequestIDMiddleware() gin.HandlerFunc {
 		if requestID == "" {
 			requestID = uuid.New().String()
 		}
-		
+
 		c.Header("X-Request-ID", requestID)
 		c.Set("request_id", requestID)
 		c.Next()
@@ -233,7 +233,7 @@ func TraceIDMiddleware() gin.HandlerFunc {
 		if traceID == "" {
 			traceID = uuid.New().String()
 		}
-		
+
 		c.Header("X-Trace-ID", traceID)
 		c.Set("trace_id", traceID)
 		c.Next()
@@ -256,31 +256,31 @@ func LoggingMiddleware(config *RequestLogConfig) gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
 		// リクエスト開始時のログ
 		start := time.Now()
-		
+
 		requestID := c.GetHeader("X-Request-ID")
 		userID := c.GetHeader("X-User-ID")
 		traceID := c.GetHeader("X-Trace-ID")
-		
+
 		logger := GetGlobalLogger().
 			WithRequestID(requestID).
 			WithUserID(userID).
 			WithTraceID(traceID)
-		
+
 		logger.Info("Request started", map[string]interface{}{
-			"method": c.Request.Method,
-			"path":   c.Request.URL.Path,
-			"query":  c.Request.URL.RawQuery,
-			"client_ip": c.ClientIP(),
+			"method":     c.Request.Method,
+			"path":       c.Request.URL.Path,
+			"query":      c.Request.URL.RawQuery,
+			"client_ip":  c.ClientIP(),
 			"user_agent": c.Request.UserAgent(),
 		})
-		
+
 		// リクエスト処理
 		c.Next()
-		
+
 		// レスポンス完了時のログ
 		latency := time.Since(start)
 		status := c.Writer.Status()
-		
+
 		fields := map[string]interface{}{
 			"method":  c.Request.Method,
 			"path":    c.Request.URL.Path,
@@ -288,7 +288,7 @@ func LoggingMiddleware(config *RequestLogConfig) gin.HandlerFunc {
 			"latency": latency.String(),
 			"size":    c.Writer.Size(),
 		}
-		
+
 		// ログレベルの決定
 		var level LogLevel
 		switch {
@@ -299,7 +299,7 @@ func LoggingMiddleware(config *RequestLogConfig) gin.HandlerFunc {
 		default:
 			level = INFO
 		}
-		
+
 		message := fmt.Sprintf("Request completed: %s %s", c.Request.Method, c.Request.URL.Path)
 		logger.log(level, message, fields)
 	})
