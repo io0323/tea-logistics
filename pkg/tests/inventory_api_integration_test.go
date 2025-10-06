@@ -139,26 +139,30 @@ func TestInventoryAPI_CreateMovement(t *testing.T) {
 	defer db.Close()
 
 	t.Run("正常な在庫移動作成", func(t *testing.T) {
-		// モックの設定
+		// モックの設定 - 移動元在庫（商品ID=1が東京倉庫にある）
 		fromRows := sqlmock.NewRows([]string{"id", "product_id", "quantity", "location", "status", "created_at", "updated_at"}).
 			AddRow(1, 1, 100, "東京倉庫", models.InventoryStatusAvailable, time.Now(), time.Now())
 		mock.ExpectQuery(`SELECT id, product_id, quantity, location, status, created_at, updated_at FROM inventory WHERE location = \$1 ORDER BY id`).
 			WithArgs("東京倉庫").
 			WillReturnRows(fromRows)
 
+		// 移動元在庫の更新（最初に実行される）
+		mock.ExpectExec(`UPDATE inventory SET quantity = \$1, updated_at = \$2 WHERE id = \$3`).
+			WithArgs(50, sqlmock.AnyArg(), 1).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		// 移動先在庫（商品ID=1が大阪倉庫にない）
 		toRows := sqlmock.NewRows([]string{"id", "product_id", "quantity", "location", "status", "created_at", "updated_at"})
 		mock.ExpectQuery(`SELECT id, product_id, quantity, location, status, created_at, updated_at FROM inventory WHERE location = \$1 ORDER BY id`).
 			WithArgs("大阪倉庫").
 			WillReturnRows(toRows)
 
-		mock.ExpectExec(`UPDATE inventory SET quantity = \$1, updated_at = \$2 WHERE id = \$3`).
-			WithArgs(50, sqlmock.AnyArg(), 1).
-			WillReturnResult(sqlmock.NewResult(0, 1))
-
+		// 移動先在庫の作成
 		mock.ExpectQuery(`INSERT INTO inventory`).
 			WithArgs(1, 50, "大阪倉庫", models.InventoryStatusAvailable, sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(2))
 
+		// 在庫移動の記録
 		mock.ExpectQuery(`INSERT INTO inventory_movements`).
 			WithArgs(1, "東京倉庫", "大阪倉庫", 50, models.MovementTypeTransfer, sqlmock.AnyArg(), "TRF-001", sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
