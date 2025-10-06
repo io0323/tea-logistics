@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"tea-logistics/pkg/config"
 	"tea-logistics/pkg/database"
 	"tea-logistics/pkg/handlers"
+	"tea-logistics/pkg/logger"
 	"tea-logistics/pkg/middleware"
 	"tea-logistics/pkg/repository"
 	"tea-logistics/pkg/routes"
@@ -34,16 +34,31 @@ func init() {
 }
 
 func main() {
+	// ログ機能の初期化
+	if err := logger.InitFromEnv(); err != nil {
+		log.Fatalf("ログ機能の初期化に失敗しました: %v", err)
+	}
+	
+	logger.Info("アプリケーションを起動しています", map[string]interface{}{
+		"version": "1.0.0",
+		"env":     os.Getenv("GIN_MODE"),
+	})
+
 	// データベース接続の初期化
 	if err := database.InitDB(); err != nil {
-		log.Fatalf("データベース初期化エラー: %v", err)
+		logger.Fatal("データベース初期化エラー", map[string]interface{}{
+			"error": err.Error(),
+		})
 	}
 	defer database.CloseDB()
 
 	// マイグレーションの実行
 	migrationsDir := filepath.Join("internal", "migrations")
 	if err := database.RunMigrations(migrationsDir); err != nil {
-		log.Fatalf("マイグレーション実行エラー: %v", err)
+		logger.Fatal("マイグレーション実行エラー", map[string]interface{}{
+			"error": err.Error(),
+			"dir":   migrationsDir,
+		})
 	}
 
 	// サーバーポートの取得
@@ -52,25 +67,35 @@ func main() {
 		port = "8080"
 	}
 
-	fmt.Printf("サーバーを起動しました。ポート: %s\n", port)
+	logger.Info("サーバー設定", map[string]interface{}{
+		"port": port,
+	})
 
 	// 設定の読み込み
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("設定の読み込みに失敗しました: %v", err)
+		logger.Fatal("設定の読み込みに失敗しました", map[string]interface{}{
+			"error": err.Error(),
+		})
 	}
 
 	// データベース接続
 	db, err := sql.Open("postgres", cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("データベース接続に失敗しました: %v", err)
+		logger.Fatal("データベース接続に失敗しました", map[string]interface{}{
+			"error": err.Error(),
+		})
 	}
 	defer db.Close()
 
 	// データベース接続の確認
 	if err := db.Ping(); err != nil {
-		log.Fatalf("データベース接続の確認に失敗しました: %v", err)
+		logger.Fatal("データベース接続の確認に失敗しました", map[string]interface{}{
+			"error": err.Error(),
+		})
 	}
+
+	logger.Info("データベース接続が確立されました")
 
 	// データベースをラップ
 	dbWrapper := repository.NewSQLDatabase(db)
@@ -102,8 +127,15 @@ func main() {
 	// Ginルーターの設定
 	router := gin.Default()
 
-	// ミドルウェアの設定
-	router.Use(gin.Logger())
+	// ログミドルウェアの設定
+	router.Use(logger.RequestIDMiddleware())
+	router.Use(logger.TraceIDMiddleware())
+	router.Use(logger.UserIDMiddleware())
+	router.Use(logger.RequestLogger(nil))
+	router.Use(logger.ResponseLogger(nil))
+	router.Use(logger.ErrorLogger())
+
+	// 既存のミドルウェアの設定
 	router.Use(gin.Recovery())
 	router.Use(middleware.CorsMiddleware())
 
@@ -123,8 +155,13 @@ func main() {
 
 	// サーバーの起動
 	go func() {
+		logger.Info("サーバーを起動しています", map[string]interface{}{
+			"port": port,
+		})
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("サーバーの起動に失敗しました: %v", err)
+			logger.Fatal("サーバーの起動に失敗しました", map[string]interface{}{
+				"error": err.Error(),
+			})
 		}
 	}()
 
@@ -134,11 +171,15 @@ func main() {
 	<-quit
 
 	// サーバーのシャットダウン
-	log.Println("サーバーをシャットダウンします...")
+	logger.Info("サーバーをシャットダウンします...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("サーバーのシャットダウンに失敗しました: %v", err)
+		logger.Fatal("サーバーのシャットダウンに失敗しました", map[string]interface{}{
+			"error": err.Error(),
+		})
 	}
+	
+	logger.Info("サーバーが正常にシャットダウンされました")
 }

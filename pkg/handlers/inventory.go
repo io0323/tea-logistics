@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"tea-logistics/pkg/logger"
 	"tea-logistics/pkg/models"
 	"tea-logistics/pkg/services"
 
@@ -30,21 +31,54 @@ func NewInventoryHandler(service *services.InventoryService) *InventoryHandler {
 func (h *InventoryHandler) GetInventory(c *gin.Context) {
 	productID, err := strconv.ParseInt(c.Param("product_id"), 10, 64)
 	if err != nil {
+		logger.WithRequestID(c.GetString("request_id")).
+			WithUserID(c.GetString("user_id")).
+			Warn("無効な商品ID", map[string]interface{}{
+				"product_id": c.Param("product_id"),
+				"error":      err.Error(),
+			})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "無効な商品IDです"})
 		return
 	}
 
 	location := c.Query("location")
 	if location == "" {
+		logger.WithRequestID(c.GetString("request_id")).
+			WithUserID(c.GetString("user_id")).
+			Warn("ロケーション未指定", map[string]interface{}{
+				"product_id": productID,
+			})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ロケーションを指定してください"})
 		return
 	}
 
+	logger.WithRequestID(c.GetString("request_id")).
+		WithUserID(c.GetString("user_id")).
+		Info("在庫情報取得リクエスト", map[string]interface{}{
+			"product_id": productID,
+			"location":   location,
+		})
+
 	inventory, err := h.service.GetProductInventory(c.Request.Context(), productID, location)
 	if err != nil {
+		logger.WithRequestID(c.GetString("request_id")).
+			WithUserID(c.GetString("user_id")).
+			Error("在庫情報取得エラー", map[string]interface{}{
+				"product_id": productID,
+				"location":   location,
+				"error":      err.Error(),
+			})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	logger.WithRequestID(c.GetString("request_id")).
+		WithUserID(c.GetString("user_id")).
+		Info("在庫情報取得成功", map[string]interface{}{
+			"product_id": productID,
+			"location":   location,
+			"quantity":   inventory.Quantity,
+		})
 
 	c.JSON(http.StatusOK, inventory)
 }
@@ -161,50 +195,100 @@ func (h *InventoryHandler) CreateMovement(c *gin.Context) {
 		ReferenceNumber string `json:"reference_number"`
 	}
 
-  var req MovementRequest
-  if err := c.ShouldBindJSON(&req); err != nil {
-    c.JSON(http.StatusBadRequest, gin.H{"error": "無効なリクエスト形式です"})
-    return
-  }
+	var req MovementRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.WithRequestID(c.GetString("request_id")).
+			WithUserID(c.GetString("user_id")).
+			Warn("無効なリクエスト形式", map[string]interface{}{
+				"error": err.Error(),
+			})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "無効なリクエスト形式です"})
+		return
+	}
 
-  // MovementTypeのバリデーション
-  validMovementTypes := map[string]bool{
-    string(models.MovementTypeInbound):     true,
-    string(models.MovementTypeOutbound):    true,
-    string(models.MovementTypeTransfer):    true,
-    string(models.MovementTypeAdjustment):  true,
-  }
-  if !validMovementTypes[req.MovementType] {
-    c.JSON(http.StatusBadRequest, gin.H{"error": "無効な移動タイプです。有効な値: inbound, outbound, transfer, adjustment"})
-    return
-  }
+	logger.WithRequestID(c.GetString("request_id")).
+		WithUserID(c.GetString("user_id")).
+		Info("在庫移動作成リクエスト", map[string]interface{}{
+			"product_id":        req.ProductID,
+			"from_location":     req.FromLocation,
+			"to_location":       req.ToLocation,
+			"quantity":          req.Quantity,
+			"movement_type":     req.MovementType,
+			"reference_number":  req.ReferenceNumber,
+		})
 
-  var movementTime time.Time
-  if req.MovementDate != "" {
-    // RFC3339想定。異なる形式が必要ならばここで調整
-    if t, err := time.Parse(time.RFC3339, req.MovementDate); err == nil {
-      movementTime = t
-    } else {
-      c.JSON(http.StatusBadRequest, gin.H{"error": "movement_dateはRFC3339形式で指定してください"})
-      return
-    }
-  } else {
-    movementTime = time.Now()
-  }
+	// MovementTypeのバリデーション
+	validMovementTypes := map[string]bool{
+		string(models.MovementTypeInbound):     true,
+		string(models.MovementTypeOutbound):    true,
+		string(models.MovementTypeTransfer):    true,
+		string(models.MovementTypeAdjustment):  true,
+	}
+	if !validMovementTypes[req.MovementType] {
+		logger.WithRequestID(c.GetString("request_id")).
+			WithUserID(c.GetString("user_id")).
+			Warn("無効な移動タイプ", map[string]interface{}{
+				"movement_type": req.MovementType,
+			})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "無効な移動タイプです。有効な値: inbound, outbound, transfer, adjustment"})
+		return
+	}
 
-  movement, err := h.service.CreateMovement(c.Request.Context(), &models.CreateMovementRequest{
-    ProductID:       req.ProductID,
-    FromLocation:    req.FromLocation,
-    ToLocation:      req.ToLocation,
-    Quantity:        req.Quantity,
-    MovementType:    models.MovementType(req.MovementType),
-    MovementDate:    movementTime,
-    ReferenceNumber: req.ReferenceNumber,
-  })
+	var movementTime time.Time
+	if req.MovementDate != "" {
+		// RFC3339想定。異なる形式が必要ならばここで調整
+		if t, err := time.Parse(time.RFC3339, req.MovementDate); err == nil {
+			movementTime = t
+		} else {
+			logger.WithRequestID(c.GetString("request_id")).
+				WithUserID(c.GetString("user_id")).
+				Warn("無効な日付形式", map[string]interface{}{
+					"movement_date": req.MovementDate,
+					"error":         err.Error(),
+				})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "movement_dateはRFC3339形式で指定してください"})
+			return
+		}
+	} else {
+		movementTime = time.Now()
+	}
+
+	movement, err := h.service.CreateMovement(c.Request.Context(), &models.CreateMovementRequest{
+		ProductID:       req.ProductID,
+		FromLocation:    req.FromLocation,
+		ToLocation:      req.ToLocation,
+		Quantity:        req.Quantity,
+		MovementType:    models.MovementType(req.MovementType),
+		MovementDate:    movementTime,
+		ReferenceNumber: req.ReferenceNumber,
+	})
 	if err != nil {
+		logger.WithRequestID(c.GetString("request_id")).
+			WithUserID(c.GetString("user_id")).
+			Error("在庫移動作成エラー", map[string]interface{}{
+				"product_id":        req.ProductID,
+				"from_location":     req.FromLocation,
+				"to_location":       req.ToLocation,
+				"quantity":          req.Quantity,
+				"movement_type":     req.MovementType,
+				"reference_number":  req.ReferenceNumber,
+				"error":             err.Error(),
+			})
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	logger.WithRequestID(c.GetString("request_id")).
+		WithUserID(c.GetString("user_id")).
+		Info("在庫移動作成成功", map[string]interface{}{
+			"movement_id":        movement.ID,
+			"product_id":         movement.ProductID,
+			"from_location":      movement.FromLocation,
+			"to_location":        movement.ToLocation,
+			"quantity":           movement.Quantity,
+			"movement_type":      movement.MovementType,
+			"reference_number":   movement.ReferenceNumber,
+		})
 
 	c.JSON(http.StatusCreated, movement)
 }
